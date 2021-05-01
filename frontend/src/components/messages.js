@@ -74,4 +74,16 @@ export default defineMessages({
     id: 'project.typesOfMapping.pointsOfInterest',
     defaultMessage: 'Points of interest',
   },
+  newVersionAvailable: {
+    id: 'serviceWorker.dialog.newVersion',
+    defaultMessage: 'There is a new Tasking Manager version available!',
+  },
+  update: {
+    id: 'serviceWorker.dialog.update',
+    defaultMessage: 'Update now',
+  },
+  remindMeLater: {
+    id: 'serviceWorker.dialog.remindMeLater',
+    defaultMessage: 'Remind me later',
+  },
 });
