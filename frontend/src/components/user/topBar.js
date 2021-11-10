@@ -75,9 +75,6 @@ export function UserTopBar() {
           </div>
         </ReactPlaceholder>
       </div>
-      <div className="w-100 w-25-l fl pb2">
-        <ProfileCompleteness userDetails={user} />
-      </div>
     </div>
   );
 }

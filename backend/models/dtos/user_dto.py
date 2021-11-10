@@ -53,21 +53,7 @@ class UserDTO(Model):
         serialized_name="mappingLevel", validators=[is_known_mapping_level]
     )
     projects_mapped = IntType(serialized_name="projectsMapped")
-    email_address = EmailType(serialized_name="emailAddress")
-
-    is_email_verified = EmailType(
-        serialized_name="isEmailVerified", serialize_when_none=False
-    )
     is_expert = BooleanType(serialized_name="isExpert", serialize_when_none=False)
-    twitter_id = StringType(serialized_name="twitterId")
-    facebook_id = StringType(serialized_name="facebookId")
-    linkedin_id = StringType(serialized_name="linkedinId")
-    slack_id = StringType(serialized_name="slackId")
-    irc_id = StringType(serialized_name="ircId")
-    skype_id = StringType(serialized_name="skypeId")
-    city = StringType(serialized_name="city")
-    country = StringType(serialized_name="country")
-    name = StringType(serialized_name="name")
     picture_url = StringType(serialized_name="pictureUrl")
     default_editor = StringType(serialized_name="defaultEditor")
     mentions_notifications = BooleanType(serialized_name="mentionsNotifications")
@@ -75,15 +61,6 @@ class UserDTO(Model):
     projects_notifications = BooleanType(serialized_name="projectsNotifications")
     tasks_notifications = BooleanType(serialized_name="tasksNotifications")
     teams_notifications = BooleanType(serialized_name="teamsNotifications")
-
-    # these are read only
-    gender = StringType(
-        serialized_name="gender",
-        choices=("MALE", "FEMALE", "SELF_DESCRIBE", "PREFER_NOT"),
-    )
-    self_description_gender = StringType(
-        serialized_name="selfDescriptionGender", default=None
-    )
 
     def validate_self_description(self, data, value):
         if (
@@ -203,7 +180,7 @@ class UserRegisterEmailDTO(Model):
     """ DTO containing data for user registration with email model """
 
     id = IntType(serialize_when_none=False)
-    email = StringType(required=True)
+    email = StringType(required=False)
     success = BooleanType(default=False)
     details = StringType()
 

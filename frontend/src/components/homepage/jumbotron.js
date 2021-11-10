@@ -20,19 +20,6 @@ function JumbotronButtons() {
           <FormattedMessage {...messages.startButton} />
         </Button>
       </Link>
-      {!token && (
-        <Popup
-          trigger={
-            <Button className="bg-white blue-dark mt3 mt0-ns">
-              <FormattedMessage {...messages.joinButton} />
-            </Button>
-          }
-          modal
-          closeOnDocumentClick
-        >
-          {(close) => <SignUp closeModal={close} />}
-        </Popup>
-      )}
     </p>
   );
 }

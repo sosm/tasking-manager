@@ -7,7 +7,6 @@ import 'react-placeholder/lib/reactPlaceholder.css';
 import { UserTopBar } from '../components/user/topBar';
 import { HelpCard, FirstProjectBanner } from '../components/user/content';
 import { calculateCompleteness } from '../components/user/completeness';
-import { PersonalInformationForm } from '../components/user/forms/personalInformation';
 import { WelcomeCard } from '../components/user/content';
 import { ProjectCard } from '../components/projectCard/projectCard';
 import { nCardPlaceholders } from '../components/projectCard/nCardPlaceholder';
@@ -22,9 +21,6 @@ function IncompleteProfile() {
         <div className="fl w-100 w-60-l pb3 pr3-l">
           <WelcomeCard />
           <HelpCard />
-        </div>
-        <div className="fl w-100 w-40-l pb3 pl3-l">
-          <PersonalInformationForm />
         </div>
       </div>
     </>

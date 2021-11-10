@@ -70,21 +70,6 @@ const AuthButtons = ({ logInStyle, signUpStyle, redirectTo, alternativeSignUpTex
       <Button onClick={() => debouncedCreateLoginWindow(redirectTo)} className={`${logInStyle}`}>
         <FormattedMessage {...messages.logIn} />
       </Button>
-      <Popup
-        trigger={
-          <Button className={signUpStyle}>
-            {alternativeSignUpText ? (
-              <FormattedMessage {...messages.createAccount} />
-            ) : (
-              <FormattedMessage {...messages.signUp} />
-            )}
-          </Button>
-        }
-        modal
-        closeOnDocumentClick
-      >
-        {(close) => <SignUp closeModal={close} />}
-      </Popup>
     </>
   );
 };
@@ -185,12 +170,7 @@ class Header extends React.Component {
   };
 
   checkUserEmail() {
-    return this.props.userDetails.hasOwnProperty('emailAddress') &&
-      !this.props.userDetails.emailAddress ? (
-      <Popup modal open closeOnEscape={false} closeOnDocumentClick={false}>
-        {(close) => <UpdateEmail closeModal={close} />}
-      </Popup>
-    ) : null;
+    return null;
   }
 
   renderAuthenticationButtons() {
