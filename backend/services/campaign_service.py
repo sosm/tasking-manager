@@ -14,9 +14,9 @@ from backend.models.postgis.campaign import (
     campaign_organisations,
 )
 from backend.models.postgis.utils import NotFound
-from backend.models.postgis.project import Project
 from backend.models.postgis.organisation import Organisation
 from backend.services.organisation_service import OrganisationService
+from backend.services.project_service import ProjectService
 
 
 class CampaignService:
@@ -63,6 +63,8 @@ class CampaignService:
     @staticmethod
     def get_project_campaigns_as_dto(project_id: int) -> CampaignListDTO:
         """Gets all the campaigns for a specified project"""
+        # Test if project exists
+        ProjectService.get_project_by_id(project_id)
         query = (
             Campaign.query.join(campaign_projects)
             .filter(campaign_projects.c.project_id == project_id)
@@ -73,9 +75,12 @@ class CampaignService:
 
     @staticmethod
     def delete_project_campaign(project_id: int, campaign_id: int):
-        """ Delete campaign for a project"""
-        campaign = Campaign.query.get(campaign_id)
-        project = Project.query.get(project_id)
+        """Delete campaign for a project"""
+        campaign = CampaignService.get_campaign(campaign_id)
+        project = ProjectService.get_project_by_id(project_id)
+        project_campaigns = CampaignService.get_project_campaigns_as_dto(project_id)
+        if campaign.id not in [i["id"] for i in project_campaigns["campaigns"]]:
+            raise NotFound()
         project.campaign.remove(campaign)
         db.session.commit()
         new_campaigns = CampaignService.get_project_campaigns_as_dto(project_id)
@@ -83,14 +88,14 @@ class CampaignService:
 
     @staticmethod
     def get_all_campaigns() -> CampaignListDTO:
-        """ Returns a list of all campaigns """
+        """Returns a list of all campaigns"""
         query = Campaign.query.order_by(Campaign.name).distinct()
 
         return Campaign.campaign_list_as_dto(query)
 
     @staticmethod
     def create_campaign(campaign_dto: NewCampaignDTO):
-        """ Creates a new campaign """
+        """Creates a new campaign"""
         campaign = Campaign.from_dto(campaign_dto)
         try:
             campaign.create()
@@ -102,14 +107,16 @@ class CampaignService:
         except IntegrityError as e:
             current_app.logger.info("Integrity error: {}".format(e.args[0]))
             if isinstance(e.orig, UniqueViolation):
-                raise ValueError("Campaign name already exists") from e
+                raise ValueError("NameExists- Campaign name already exists") from e
             if isinstance(e.orig, NotNullViolation):
-                raise ValueError("Campaign name cannot be null") from e
+                raise ValueError("NullName- Campaign name cannot be null") from e
         return campaign
 
     @staticmethod
     def create_campaign_project(dto: CampaignProjectDTO):
         """Assign a campaign with a project"""
+        ProjectService.get_project_by_id(dto.project_id)
+        CampaignService.get_campaign(dto.campaign_id)
         statement = campaign_projects.insert().values(
             campaign_id=dto.campaign_id, project_id=dto.project_id
         )
@@ -120,7 +127,7 @@ class CampaignService:
 
     @staticmethod
     def create_campaign_organisation(organisation_id: int, campaign_id: int):
-        """ Creates new campaign from DTO """
+        """Creates new campaign from DTO"""
         statement = campaign_organisations.insert().values(
             campaign_id=campaign_id, organisation_id=organisation_id
         )
@@ -133,7 +140,7 @@ class CampaignService:
 
     @staticmethod
     def get_organisation_campaigns_as_dto(organisation_id: int) -> CampaignListDTO:
-        """ Gets all the campaigns for a specified project """
+        """Gets all the campaigns for a specified project"""
         query = (
             Campaign.query.join(campaign_organisations)
             .filter(campaign_organisations.c.organisation_id == organisation_id)
@@ -154,7 +161,7 @@ class CampaignService:
 
     @staticmethod
     def delete_organisation_campaign(organisation_id: int, campaign_id: int):
-        """ Delete campaign for a organisation"""
+        """Delete campaign for a organisation"""
         campaign = Campaign.query.get(campaign_id)
         org = Organisation.query.get(organisation_id)
         try:

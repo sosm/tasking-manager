@@ -50,13 +50,16 @@ class ProjectsCampaignsAPI(Resource):
                 description: Internal Server Error
         """
         try:
-            ProjectAdminService.is_user_action_permitted_on_project(
-                token_auth.current_user(), project_id
-            )
-        except ValueError as e:
-            error_msg = f"ProjectsCampaignsAPI POST: {str(e)}"
-            return {"Error": error_msg}, 403
-
+            authenticated_user_id = token_auth.current_user()
+            if not ProjectAdminService.is_user_action_permitted_on_project(
+                authenticated_user_id, project_id
+            ):
+                return {
+                    "Error": "User is not a manager of the project",
+                    "SubCode": "UserPermissionError",
+                }, 403
+        except NotFound:
+            return {"Error": "User or Project not found", "SubCode": "NotFound"}, 404
         try:
             campaign_project_dto = CampaignProjectDTO()
             campaign_project_dto.campaign_id = campaign_id
@@ -64,7 +67,7 @@ class ProjectsCampaignsAPI(Resource):
             campaign_project_dto.validate()
         except DataError as e:
             current_app.logger.error(f"error validating request: {str(e)}")
-            return str(e), 400
+            return {"Error": str(e), "SubCode": "InvalidData"}, 400
 
         try:
             CampaignService.create_campaign_project(campaign_project_dto)
@@ -72,10 +75,15 @@ class ProjectsCampaignsAPI(Resource):
                 campaign_id, project_id
             )
             return ({"Success": message}, 200)
+        except NotFound:
+            return {
+                "Error": "Campaign or Project not found",
+                "SubCode": "NotFound",
+            }, 404
         except Exception as e:
             error_msg = f"ProjectsCampaignsAPI POST - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": error_msg}, 500
+            return {"Error": error_msg, "SubCode": "InternalServerError"}, 500
 
     def get(self, project_id):
         """
@@ -106,11 +114,11 @@ class ProjectsCampaignsAPI(Resource):
             campaigns = CampaignService.get_project_campaigns_as_dto(project_id)
             return campaigns.to_primitive(), 200
         except NotFound:
-            return {"Error": "No campaign found"}, 404
+            return {"Error": "Project not found", "SubCode": "NotFound"}, 404
         except Exception as e:
             error_msg = f"Messages GET - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": error_msg}, 500
+            return {"Error": error_msg, "SubCode": "InternalServerError"}, 500
 
     @token_auth.login_required
     def delete(self, project_id, campaign_id):
@@ -152,20 +160,21 @@ class ProjectsCampaignsAPI(Resource):
             500:
                 description: Internal Server Error
         """
+        authenticated_user_id = token_auth.current_user()
         try:
-            ProjectAdminService.is_user_action_permitted_on_project(
-                token_auth.current_user(), project_id
-            )
-        except ValueError as e:
-            error_msg = f"ProjectsCampaignsAPI DELETE: {str(e)}"
-            return {"Error": error_msg}, 403
+            if not ProjectAdminService.is_user_action_permitted_on_project(
+                authenticated_user_id, project_id
+            ):
+                return {
+                    "Error": "User is not a manager of the project",
+                    "SubCode": "UserPermissionError",
+                }, 403
 
-        try:
             CampaignService.delete_project_campaign(project_id, campaign_id)
             return {"Success": "Campaigns Deleted"}, 200
         except NotFound:
-            return {"Error": "Campaign Not Found"}, 404
+            return {"Error": "Campaign Not Found", "SubCode": "NotFound"}, 404
         except Exception as e:
             error_msg = f"ProjectsCampaignsAPI DELETE - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": error_msg}, 500
+            return {"Error": error_msg, "SubCode": "InternalServerError"}, 500

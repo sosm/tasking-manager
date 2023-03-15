@@ -12,6 +12,9 @@ class UserContribution(Model):
     picture_url = StringType(serialized_name="pictureUrl")
     mapped = IntType()
     validated = IntType()
+    split = IntType()
+    marked_bad_imagery = IntType()
+    invalidated = IntType()
     total = IntType()
     mapped_tasks = ListType(IntType, serialized_name="mappedTasks")
     validated_tasks = ListType(IntType, serialized_name="validatedTasks")
@@ -82,6 +85,8 @@ class OrganizationProjectsStatsDTO(Model):
     draft = IntType()
     published = IntType()
     archived = IntType()
+    recent = IntType()  # projects created in the current year
+    stale = IntType()  # project without any activity in the last 6 months
 
 
 class OrganizationTasksStatsDTO(Model):

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useLocation } from '@reach/router';
 import { useSelector, useDispatch } from 'react-redux';
 import { useQueryParam, StringParam } from 'use-query-params';
 import Popup from 'reactjs-popup';
 import ReactPlaceholder from 'react-placeholder';
+import { FormattedMessage } from 'react-intl';
 
 import { useFetch } from '../../hooks/UseFetch';
 import { useInterval } from '../../hooks/UseInterval';
@@ -22,6 +24,8 @@ import { ChangesetCommentTags } from './changesetComment';
 import { ProjectHeader } from '../projectDetail/header';
 import Contributions from './contributions';
 import { UserPermissionErrorContent } from './permissionErrorModal';
+import { Alert } from '../alert';
+import messages from './messages';
 
 const TaskSelectionFooter = React.lazy(() => import('./footer'));
 
@@ -43,8 +47,9 @@ const getRandomTaskByAction = (activities, taskAction) => {
 };
 
 export function TaskSelection({ project, type, loading }: Object) {
-  const user = useSelector((state) => state.auth.get('userDetails'));
-  const userOrgs = useSelector((state) => state.auth.get('organisations'));
+  const location = useLocation();
+  const user = useSelector((state) => state.auth.userDetails);
+  const userOrgs = useSelector((state) => state.auth.organisations);
   const lockedTasks = useGetLockedTasks();
   const dispatch = useDispatch();
   const [tasks, setTasks] = useState();
@@ -90,6 +95,14 @@ export function TaskSelection({ project, type, loading }: Object) {
         .catch((e) => console.log(e));
     }
   }, []);
+
+  useEffect(() => {
+    const { lastLockedTasksIds, lastLockedProjectId } = location.state || {};
+    if (lastLockedTasksIds && lastLockedProjectId === project.projectId) {
+      setZoomedTaskId(lastLockedTasksIds);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project]);
 
   // fetch activities and contributions when the component is started
   useEffect(() => {
@@ -235,7 +248,10 @@ export function TaskSelection({ project, type, loading }: Object) {
           setTaskAction(getTaskAction(user, project, null, userTeams.teams, userOrgs));
         } else {
           // if there are multiple tasks selected, remove the clicked one
-          setSelectedTasks(selected.filter((i) => i !== selection));
+          const selectedTasksTemp = selected.filter((i) => i !== selection);
+          setSelectedTasks(selectedTasksTemp);
+          selectedTasksTemp.length === 0 &&
+            setTaskAction(getTaskAction(user, project, null, userTeams.teams, userOrgs));
         }
       } else {
         // if there is some task selected to validation and the user selects
@@ -244,14 +260,16 @@ export function TaskSelection({ project, type, loading }: Object) {
           setSelectedTasks(selected.concat([selection]));
         } else {
           setSelectedTasks([selection]);
-          if (lockedTasks.get('tasks').includes(selection)) {
+          if (lockedTasks.tasks.includes(selection)) {
             setTaskAction(
-              lockedTasks.get('status') === 'LOCKED_FOR_MAPPING'
-                ? 'resumeMapping'
-                : 'resumeValidation',
+              lockedTasks.status === 'LOCKED_FOR_MAPPING' ? 'resumeMapping' : 'resumeValidation',
             );
           } else {
-            setTaskAction(getTaskAction(user, project, status, userTeams.teams, userOrgs));
+            if (project.enforceRandomTaskSelection && status === 'READY') {
+              setTaskAction(getTaskAction(user, project, null, userTeams.teams, userOrgs));
+            } else {
+              setTaskAction(getTaskAction(user, project, status, userTeams.teams, userOrgs));
+            }
           }
         }
       }
@@ -270,6 +288,13 @@ export function TaskSelection({ project, type, loading }: Object) {
     }
   }
 
+  const curatedSelectedTasks =
+    project.enforceRandomTaskSelection && taskAction !== 'validateSelectedTask'
+      ? randomTask
+      : selected.length && !taskAction.endsWith('AnotherTask')
+      ? selected
+      : randomTask;
+
   return (
     <div>
       <div className="cf vh-minus-200-ns">
@@ -284,15 +309,15 @@ export function TaskSelection({ project, type, loading }: Object) {
             )}
           </Popup>
         )}
-        <div className="w-100 w-50-ns fl pt3 overflow-y-scroll-ns vh-minus-200-ns h-100">
-          <div className="pl4-l pl2 pr2">
+        <div className="w-100 w-50-ns fl pt3 overflow-y-auto-ns vh-minus-200-ns h-100">
+          <div className="pl4-l pl2 pr4">
             <ReactPlaceholder
               showLoadingAnimation={true}
               rows={3}
               ready={typeof project.projectId === 'number' && project.projectId > 0}
             >
               <ProjectHeader project={project} />
-              <div className="cf">
+              <div className="mt3">
                 <TabSelector activeSection={activeSection} setActiveSection={setActiveSection} />
                 <div className="pt3">
                   <div className={`${activeSection !== 'tasks' ? 'dn' : ''}`}>
@@ -311,8 +336,14 @@ export function TaskSelection({ project, type, loading }: Object) {
                   </div>
                   {activeSection === 'instructions' ? (
                     <>
+                      {project.enforceRandomTaskSelection && (
+                        <Alert type="info">
+                          <FormattedMessage {...messages.enforcedRandomTaskSelection} />
+                        </Alert>
+                      )}
                       <ProjectInstructions
                         instructions={project.projectInfo && project.projectInfo.instructions}
+                        isProjectArchived={project.status === 'ARCHIVED'}
                       />
                       <ChangesetCommentTags tags={project.changesetComment} />
                     </>
@@ -375,9 +406,7 @@ export function TaskSelection({ project, type, loading }: Object) {
               project={project}
               tasks={tasks}
               taskAction={taskAction}
-              selectedTasks={
-                selected.length && !taskAction.endsWith('AnotherTask') ? selected : randomTask
-              }
+              selectedTasks={curatedSelectedTasks}
             />
           </Suspense>
         </ReactPlaceholder>

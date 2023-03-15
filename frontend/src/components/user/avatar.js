@@ -8,7 +8,7 @@ import { useAvatarStyle } from '../../hooks/UseAvatarStyle';
 import { useAvatarText } from '../../hooks/UseAvatarText';
 
 export const CurrentUserAvatar = (props) => {
-  const userPicture = useSelector((state) => state.auth.getIn(['userDetails', 'pictureUrl']));
+  const userPicture = useSelector((state) => state.auth.userDetails.pictureUrl);
   if (userPicture) {
     return (
       <div
@@ -18,7 +18,7 @@ export const CurrentUserAvatar = (props) => {
       />
     );
   }
-  return <ProfilePictureIcon {...props} />;
+  return <ProfilePictureIcon {...props} aria-label="Sample avatar" />;
 };
 
 export const UserAvatar = ({
@@ -78,6 +78,7 @@ const Avatar = ({ username, size, colorClasses, removeFn, picture, text, editMod
     >
       {removeFn && editMode && (
         <div
+          role="button"
           className="relative top-0 z-1 fr br-100 f7 tc h1 w1 bg-red white pointer"
           style={closeIconStyle}
           onClick={() => removeFn(username)}

@@ -11,7 +11,6 @@ from schematics.types import (
 )
 from schematics.types.compound import ListType, ModelType
 from backend.models.dtos.task_annotation_dto import TaskAnnotationDTO
-from backend.models.dtos.user_dto import is_known_mapping_level
 from backend.models.dtos.stats_dto import Pagination
 from backend.models.dtos.team_dto import ProjectTeamDTO
 from backend.models.dtos.interests_dto import InterestDTO
@@ -23,6 +22,7 @@ from backend.models.postgis.statuses import (
     Editors,
     MappingPermission,
     ValidationPermission,
+    ProjectDifficulty,
 )
 from backend.models.dtos.campaign_dto import CampaignDTO
 
@@ -79,7 +79,8 @@ def is_known_editor(value):
         raise ValidationError(
             f"Unknown editor: {value} Valid values are {Editors.ID.name}, "
             f"{Editors.JOSM.name}, {Editors.POTLATCH_2.name}, "
-            f"{Editors.FIELD_PAPERS.name}"
+            f"{Editors.FIELD_PAPERS.name}, "
+            f"{Editors.RAPID.name} "
         )
 
 
@@ -114,6 +115,22 @@ def is_known_validation_permission(value):
             f"Unknown validationPermission: {value} Valid values are {ValidationPermission.ANY.name}, "
             f"{ValidationPermission.LEVEL.name}, {ValidationPermission.TEAMS.name}, "
             f"{ValidationPermission.TEAMS_LEVEL.name}"
+        )
+
+
+def is_known_project_difficulty(value):
+    """Validates that supplied project difficulty is known value"""
+    if value.upper() == "ALL":
+        return True
+
+    try:
+        value = value.split(",")
+        for difficulty in value:
+            ProjectDifficulty[difficulty.upper()]
+    except KeyError:
+        raise ValidationError(
+            f"Unknown projectDifficulty: {value} Valid values are {ProjectDifficulty.EASY.name}, "
+            f"{ProjectDifficulty.MODERATE.name}, {ProjectDifficulty.CHALLENGING.name} and ALL."
         )
 
 
@@ -180,10 +197,10 @@ class ProjectDTO(Model):
         serialized_name="projectInfoLocales",
         serialize_when_none=False,
     )
-    mapper_level = StringType(
+    difficulty = StringType(
         required=True,
-        serialized_name="mapperLevel",
-        validators=[is_known_mapping_level],
+        serialized_name="difficulty",
+        validators=[is_known_project_difficulty],
     )
     mapping_permission = StringType(
         required=True,
@@ -206,6 +223,10 @@ class ProjectDTO(Model):
     imagery = StringType()
     josm_preset = StringType(serialized_name="josmPreset", serialize_when_none=False)
     id_presets = ListType(StringType, serialized_name="idPresets", default=[])
+    extra_id_params = StringType(serialized_name="extraIdParams")
+    rapid_power_user = BooleanType(
+        serialized_name="rapidPowerUser", default=False, required=False
+    )
     mapping_types = ListType(
         StringType,
         serialized_name="mappingTypes",
@@ -281,7 +302,7 @@ class ProjectSearchDTO(Model):
     """ Describes the criteria users use to filter active projects"""
 
     preferred_locale = StringType(default="en")
-    mapper_level = StringType(validators=[is_known_mapping_level])
+    difficulty = StringType(validators=[is_known_project_difficulty])
     action = StringType()
     mapping_types = ListType(StringType, validators=[is_known_mapping_type])
     mapping_types_exact = BooleanType(required=False)
@@ -303,6 +324,7 @@ class ProjectSearchDTO(Model):
     mapped_by = IntType(required=False)
     favorited_by = IntType(required=False)
     managed_by = IntType(required=False)
+    based_on_user_interests = IntType(required=False)
     omit_map_results = BooleanType(required=False)
     last_updated_lte = StringType(required=False)
     last_updated_gte = StringType(required=False)
@@ -337,7 +359,7 @@ class ProjectSearchDTO(Model):
         return hash(
             (
                 self.preferred_locale,
-                self.mapper_level,
+                self.difficulty,
                 hashable_mapping_types,
                 hashable_project_statuses,
                 hashable_teams,
@@ -355,7 +377,7 @@ class ProjectSearchDTO(Model):
 class ProjectSearchBBoxDTO(Model):
     bbox = ListType(FloatType, required=True, min_size=4, max_size=4)
     input_srid = IntType(required=True, choices=[4326])
-    preferred_locale = StringType(required=True, default="en")
+    preferred_locale = StringType(required=False, default="en")
     project_author = IntType(required=False, serialized_name="projectAuthor")
 
 
@@ -366,7 +388,7 @@ class ListSearchResultDTO(Model):
     locale = StringType(required=True)
     name = StringType(default="")
     short_description = StringType(serialized_name="shortDescription", default="")
-    mapper_level = StringType(required=True, serialized_name="mapperLevel")
+    difficulty = StringType(required=True, serialized_name="difficulty")
     priority = StringType(required=True)
     organisation_name = StringType(serialized_name="organisationName")
     organisation_logo = StringType(serialized_name="organisationLogo")
@@ -475,7 +497,7 @@ class ProjectSummary(Model):
     percent_validated = IntType(serialized_name="percentValidated")
     percent_bad_imagery = IntType(serialized_name="percentBadImagery")
     aoi_centroid = BaseType(serialized_name="aoiCentroid")
-    mapper_level = StringType(serialized_name="mapperLevel")
+    difficulty = StringType(serialized_name="difficulty")
     mapping_permission = IntType(
         serialized_name="mappingPermission", validators=[is_known_mapping_permission]
     )
@@ -500,6 +522,10 @@ class ProjectSummary(Model):
     imagery = StringType()
     license_id = IntType(serialized_name="licenseId")
     id_presets = ListType(StringType, serialized_name="idPresets", default=[])
+    extra_id_params = StringType(serialized_name="extraIdParams")
+    rapid_power_user = BooleanType(
+        serialized_name="rapidPowerUser", default=False, required=False
+    )
     mapping_editors = ListType(
         StringType,
         min_size=1,

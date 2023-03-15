@@ -11,6 +11,7 @@ from backend.models.dtos.validator_dto import (
     LockForValidationDTO,
     UnlockAfterValidationDTO,
     StopValidationDTO,
+    RevertUserValidatedTasksDTO,
 )
 from backend.services.validator_service import (
     ValidatorService,
@@ -21,6 +22,7 @@ from backend.models.dtos.mapping_dto import (
     LockTaskDTO,
     StopMappingTaskDTO,
     MappedTaskDTO,
+    ExtendLockTimeDTO,
 )
 from backend.services.mapping_service import MappingService, MappingServiceError
 
@@ -85,21 +87,27 @@ class TasksActionsMappingLockAPI(Resource):
             lock_task_dto.validate()
         except DataError as e:
             current_app.logger.error(f"Error validating request: {str(e)}")
-            return {"Error": "Unable to lock task"}, 400
+            return {"Error": "Unable to lock task", "SubCode": "InvalidData"}, 400
 
         try:
             task = MappingService.lock_task_for_mapping(lock_task_dto)
             return task.to_primitive(), 200
         except NotFound:
-            return {"Error": "Task Not Found"}, 404
+            return {"Error": "Task Not Found", "SubCode": "NotFound"}, 404
         except MappingServiceError as e:
-            return {"Error": str(e)}, 403
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
         except UserLicenseError:
-            return {"Error": "User not accepted license terms"}, 409
+            return {
+                "Error": "User not accepted license terms",
+                "SubCode": "UserLicenseError",
+            }, 409
         except Exception as e:
             error_msg = f"Task Lock API - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Unable to lock task"}, 500
+            return {
+                "Error": "Unable to lock task",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsMappingStopAPI(Resource):
@@ -171,19 +179,22 @@ class TasksActionsMappingStopAPI(Resource):
             stop_task.validate()
         except DataError as e:
             current_app.logger.error(f"Error validating request: {str(e)}")
-            return {"Error": "Task unlock failed"}, 400
+            return {"Error": "Task unlock failed", "SubCode": "InvalidData"}, 400
 
         try:
             task = MappingService.stop_mapping_task(stop_task)
             return task.to_primitive(), 200
         except NotFound:
-            return {"Error": "Task Not Found"}, 404
-        except MappingServiceError:
-            return {"Error": "Task unlock failed"}, 403
+            return {"Error": "Task Not Found", "SubCode": "NotFound"}, 404
+        except MappingServiceError as e:
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
         except Exception as e:
             error_msg = f"Task Lock API - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Task unlock failed"}, 500
+            return {
+                "Error": "Task unlock failed",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsMappingUnlockAPI(Resource):
@@ -255,19 +266,22 @@ class TasksActionsMappingUnlockAPI(Resource):
             mapped_task.validate()
         except DataError as e:
             current_app.logger.error(f"Error validating request: {str(e)}")
-            return {"Error": "Task unlock failed"}, 400
+            return {"Error": "Task unlock failed", "SubCode": "InvalidData"}, 400
 
         try:
             task = MappingService.unlock_task_after_mapping(mapped_task)
             return task.to_primitive(), 200
         except NotFound:
-            return {"Error": "Task Not Found"}, 404
-        except MappingServiceError:
-            return {"Error": "Task unlock failed"}, 403
+            return {"Error": "Task Not Found", "SubCode": "NotFound"}, 404
+        except MappingServiceError as e:
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
         except Exception as e:
             error_msg = f"Task Lock API - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Task unlock failed"}, 500
+            return {
+                "Error": "Task unlock failed",
+                "SubCode": "InternalServerError",
+            }, 500
         finally:
             # Refresh mapper level after mapping
             UserService.check_and_update_mapper_level(authenticated_user_id)
@@ -325,13 +339,16 @@ class TasksActionsMappingUndoAPI(Resource):
             )
             return task.to_primitive(), 200
         except NotFound:
-            return {"Error": "Task Not Found"}, 404
-        except MappingServiceError:
-            return {"Error": "User not permitted to undo task"}, 403
+            return {"Error": "Task Not Found", "SubCode": "NotFound"}, 404
+        except MappingServiceError as e:
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
         except Exception as e:
             error_msg = f"Task GET API - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Unable to lock task"}, 500
+            return {
+                "Error": "Unable to lock task",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsValidationLockAPI(Resource):
@@ -399,22 +416,27 @@ class TasksActionsValidationLockAPI(Resource):
             validator_dto.validate()
         except DataError as e:
             current_app.logger.error(f"Error validating request: {str(e)}")
-            return {"Error": "Unable to lock task"}, 400
+            return {"Error": "Unable to lock task", "SubCode": "InvalidData"}, 400
 
         try:
             tasks = ValidatorService.lock_tasks_for_validation(validator_dto)
             return tasks.to_primitive(), 200
         except ValidatorServiceError as e:
-            error_msg = f"Validator Lock API - {str(e)}"
-            return {"Error": error_msg}, 403
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
         except NotFound:
-            return {"Error": "Task not found"}, 404
+            return {"Error": "Task not found", "SubCode": "NotFound"}, 404
         except UserLicenseError:
-            return {"Error": "User not accepted license terms"}, 409
+            return {
+                "Error": "User not accepted license terms",
+                "SubCode": "UserLicenseError",
+            }, 409
         except Exception as e:
             error_msg = f"Validator Lock API - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Unable to lock task"}, 500
+            return {
+                "Error": "Unable to lock task",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsValidationStopAPI(Resource):
@@ -480,19 +502,22 @@ class TasksActionsValidationStopAPI(Resource):
             validated_dto.validate()
         except DataError as e:
             current_app.logger.error(f"Error validating request: {str(e)}")
-            return {"Error": "Task unlock failed"}, 400
+            return {"Error": "Task unlock failed", "SubCode": "InvalidData"}, 400
 
         try:
             tasks = ValidatorService.stop_validating_tasks(validated_dto)
             return tasks.to_primitive(), 200
-        except ValidatorServiceError:
-            return {"Error": "Task unlock failed"}, 403
+        except ValidatorServiceError as e:
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
         except NotFound:
-            return {"Error": "Task unlock failed"}, 404
+            return {"Error": "Task unlock failed", "SubCode": "NotFound"}, 404
         except Exception as e:
             error_msg = f"Stop Validating API - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Task unlock failed"}, 500
+            return {
+                "Error": "Task unlock failed",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsValidationUnlockAPI(Resource):
@@ -557,19 +582,22 @@ class TasksActionsValidationUnlockAPI(Resource):
             validated_dto.validate()
         except DataError as e:
             current_app.logger.error(f"Error validating request: {str(e)}")
-            return {"Error": "Task unlock failed"}, 400
+            return {"Error": "Task unlock failed", "SubCode": "InvalidData"}, 400
 
         try:
             tasks = ValidatorService.unlock_tasks_after_validation(validated_dto)
             return tasks.to_primitive(), 200
-        except ValidatorServiceError:
-            return {"Error": "Task unlock failed"}, 403
+        except ValidatorServiceError as e:
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
         except NotFound:
-            return {"Error": "Task unlock failed"}, 404
+            return {"Error": "Task unlock failed", "SubCode": "NotFound"}, 404
         except Exception as e:
             error_msg = f"Validator Lock API - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Task unlock failed"}, 500
+            return {
+                "Error": "Task unlock failed",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsMapAllAPI(Resource):
@@ -607,12 +635,15 @@ class TasksActionsMapAllAPI(Resource):
         """
         try:
             authenticated_user_id = token_auth.current_user()
-            ProjectAdminService.is_user_action_permitted_on_project(
+            if not ProjectAdminService.is_user_action_permitted_on_project(
                 authenticated_user_id, project_id
-            )
-        except ValueError as e:
-            error_msg = f"TasksActionsMapAllAPI POST: {str(e)}"
-            return {"Error": error_msg}, 403
+            ):
+                raise ValueError()
+        except ValueError:
+            return {
+                "Error": "User is not a manager of the project",
+                "SubCode": "UserPermissionError",
+            }, 403
 
         try:
             MappingService.map_all_tasks(project_id, authenticated_user_id)
@@ -620,7 +651,10 @@ class TasksActionsMapAllAPI(Resource):
         except Exception as e:
             error_msg = f"TasksActionsMapAllAPI POST - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Unable to map all the tasks"}, 500
+            return {
+                "Error": "Unable to map all the tasks",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsValidateAllAPI(Resource):
@@ -658,12 +692,15 @@ class TasksActionsValidateAllAPI(Resource):
         """
         try:
             authenticated_user_id = token_auth.current_user()
-            ProjectAdminService.is_user_action_permitted_on_project(
+            if not ProjectAdminService.is_user_action_permitted_on_project(
                 authenticated_user_id, project_id
-            )
-        except ValueError as e:
-            error_msg = f"TasksActionsValidateAllAPI POST: {str(e)}"
-            return {"Error": error_msg}, 403
+            ):
+                raise ValueError()
+        except ValueError:
+            return {
+                "Error": "User is not a manager of the project",
+                "SubCode": "UserPermissionError",
+            }, 403
 
         try:
             ValidatorService.validate_all_tasks(project_id, authenticated_user_id)
@@ -671,14 +708,17 @@ class TasksActionsValidateAllAPI(Resource):
         except Exception as e:
             error_msg = f"TasksActionsValidateAllAPI POST - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Unable to validate all tasks"}, 500
+            return {
+                "Error": "Unable to validate all tasks",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsInvalidateAllAPI(Resource):
     @token_auth.login_required
     def post(self, project_id):
         """
-        Invalidate all mapped tasks on a project
+        Invalidate all validated tasks on a project
         ---
         tags:
             - tasks
@@ -699,7 +739,7 @@ class TasksActionsInvalidateAllAPI(Resource):
               default: 1
         responses:
             200:
-                description: All mapped tasks invalidated
+                description: All validated tasks invalidated
             401:
                 description: Unauthorized - Invalid credentials
             403:
@@ -709,12 +749,15 @@ class TasksActionsInvalidateAllAPI(Resource):
         """
         try:
             authenticated_user_id = token_auth.current_user()
-            ProjectAdminService.is_user_action_permitted_on_project(
+            if not ProjectAdminService.is_user_action_permitted_on_project(
                 authenticated_user_id, project_id
-            )
-        except ValueError as e:
-            error_msg = f"TasksActionsInvalidateAllAPI POST: {str(e)}"
-            return {"Error": error_msg}, 403
+            ):
+                raise ValueError()
+        except ValueError:
+            return {
+                "Error": "User is not a manager of the project",
+                "SubCode": "UserPermissionError",
+            }, 403
 
         try:
             ValidatorService.invalidate_all_tasks(project_id, authenticated_user_id)
@@ -722,7 +765,10 @@ class TasksActionsInvalidateAllAPI(Resource):
         except Exception as e:
             error_msg = f"TasksActionsInvalidateAllAPI POST - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Unable to invalidate all tasks"}, 500
+            return {
+                "Error": "Unable to invalidate all tasks",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsResetBadImageryAllAPI(Resource):
@@ -760,12 +806,15 @@ class TasksActionsResetBadImageryAllAPI(Resource):
         """
         try:
             authenticated_user_id = token_auth.current_user()
-            ProjectAdminService.is_user_action_permitted_on_project(
+            if not ProjectAdminService.is_user_action_permitted_on_project(
                 authenticated_user_id, project_id
-            )
-        except ValueError as e:
-            error_msg = f"TasksActionsResetBadImageryAllAPI POST: {str(e)}"
-            return {"Error": error_msg}, 403
+            ):
+                raise ValueError()
+        except ValueError:
+            return {
+                "Error": "User is not a manager of the project",
+                "SubCode": "UserPermissionError",
+            }, 403
 
         try:
             MappingService.reset_all_badimagery(project_id, authenticated_user_id)
@@ -775,7 +824,10 @@ class TasksActionsResetBadImageryAllAPI(Resource):
                 f"TasksActionsResetBadImageryAllAPI POST - unhandled error: {str(e)}"
             )
             current_app.logger.critical(error_msg)
-            return {"Error": "Unable to reset tasks"}, 500
+            return {
+                "Error": "Unable to reset tasks",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsResetAllAPI(Resource):
@@ -813,12 +865,16 @@ class TasksActionsResetAllAPI(Resource):
         """
         try:
             authenticated_user_id = token_auth.current_user()
-            ProjectAdminService.is_user_action_permitted_on_project(
+            authenticated_user_id = token_auth.current_user()
+            if not ProjectAdminService.is_user_action_permitted_on_project(
                 authenticated_user_id, project_id
-            )
-        except ValueError as e:
-            error_msg = f"TasksActionsResetAllAPI POST: {str(e)}"
-            return {"Error": error_msg}, 403
+            ):
+                raise ValueError()
+        except ValueError:
+            return {
+                "Error": "User is not a manager of the project",
+                "SubCode": "UserPermissionError",
+            }, 403
 
         try:
             ProjectAdminService.reset_all_tasks(project_id, authenticated_user_id)
@@ -826,7 +882,10 @@ class TasksActionsResetAllAPI(Resource):
         except Exception as e:
             error_msg = f"TasksActionsResetAllAPI POST - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Unable to reset tasks"}, 500
+            return {
+                "Error": "Unable to reset tasks",
+                "SubCode": "InternalServerError",
+            }, 500
 
 
 class TasksActionsSplitAPI(Resource):
@@ -889,17 +948,181 @@ class TasksActionsSplitAPI(Resource):
             split_task_dto.validate()
         except DataError as e:
             current_app.logger.error(f"Error validating request: {str(e)}")
-            return {"Error": "Unable to split task"}, 400
+            return {"Error": "Unable to split task", "SubCode": "InvalidData"}, 400
         try:
             tasks = SplitService.split_task(split_task_dto)
             return tasks.to_primitive(), 200
         except NotFound:
-            return {"Error": "Task Not Found"}, 404
+            return {"Error": "Task Not Found", "SubCode": "NotFound"}, 404
         except SplitServiceError as e:
-            return {"Error": str(e)}, 403
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
         except InvalidGeoJson as e:
-            return {"Error": str(e)}, 500
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
         except Exception as e:
             error_msg = f"TasksActionsSplitAPI POST - unhandled error: {str(e)}"
             current_app.logger.critical(error_msg)
-            return {"Error": "Unable to split task"}, 500
+            return {
+                "Error": "Unable to split task",
+                "SubCode": "InternalServerError",
+            }, 500
+
+
+class TasksActionsExtendAPI(Resource):
+    @token_auth.login_required
+    def post(self, project_id):
+        """
+        Extends duration of locked tasks
+        ---
+        tags:
+            - tasks
+        produces:
+            - application/json
+        parameters:
+            - in: header
+              name: Authorization
+              description: Base64 encoded session token
+              required: true
+              type: string
+              default: Token sessionTokenHere==
+            - in: header
+              name: Accept-Language
+              description: Language user is requesting
+              type: string
+              required: true
+              default: en
+            - name: project_id
+              in: path
+              description: Project ID the tasks are associated with
+              required: true
+              type: integer
+              default: 1
+            - in: body
+              name: body
+              required: true
+              description: JSON object for locking task(s)
+              schema:
+                  properties:
+                      taskIds:
+                          type: array
+                          items:
+                              type: integer
+                          description: Array of taskIds to extend time for
+                          default: [1,2]
+        responses:
+            200:
+                description: Task(s) locked for validation
+            400:
+                description: Client Error
+            401:
+                description: Unauthorized - Invalid credentials
+            403:
+                description: Forbidden
+            404:
+                description: Task not found
+            500:
+                description: Internal Server Error
+        """
+        try:
+            extend_dto = ExtendLockTimeDTO(request.get_json())
+            extend_dto.project_id = project_id
+            extend_dto.user_id = token_auth.current_user()
+            extend_dto.validate()
+        except DataError as e:
+            current_app.logger.error(f"Error validating request: {str(e)}")
+            return {
+                "Error": "Unable to extend lock time",
+                "SubCode": "InvalidData",
+            }, 400
+
+        try:
+            MappingService.extend_task_lock_time(extend_dto)
+            return {"Success": "Successfully extended task expiry"}, 200
+        except MappingServiceError as e:
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
+        except NotFound:
+            return {"Error": "Task not found", "SubCode": "NotFound"}, 404
+        except Exception as e:
+            error_msg = f"Validator Lock API - unhandled error: {str(e)}"
+            current_app.logger.critical(error_msg)
+            return {
+                "Error": "Unable to lock task",
+                "SubCode": "InternalServerError",
+            }, 500
+
+
+class TasksActionsReverUserTaskstAPI(Resource):
+    @token_auth.login_required
+    def post(self, project_id):
+        """
+        Revert tasks by a specific user in a project
+        ---
+        tags:
+            - tasks
+        produces:
+            - application/json
+        parameters:
+            - in: header
+              name: Authorization
+              description: Base64 encoded session token
+              required: true
+              type: string
+              default: Token session
+            - in: header
+              name: Accept-Language
+              description: Language user is requesting
+              type: string
+              required: true
+              default: en
+            - in: path
+              name: project_id
+              description: Project ID the tasks are associated with
+              required: true
+              type: integer
+              default: 1
+            - in: query
+              name: username
+              description: Username to revert tasks for
+              required: true
+              type: string
+              default: test
+        responses:
+            200:
+                description: Tasks reverted
+            400:
+                description: Client Error
+            401:
+                description: Unauthorized - Invalid credentials
+            403:
+                description: Forbidden
+            404:
+                description: Task not found
+            500:
+                description: Internal Server Error
+        """
+        try:
+            revert_dto = RevertUserValidatedTasksDTO()
+            revert_dto.project_id = project_id
+            user = UserService.get_user_by_username(request.args.get("username"))
+            revert_dto.user_id = user.id
+            revert_dto.action_by = token_auth.current_user()
+            revert_dto.validate()
+        except DataError as e:
+            current_app.logger.error(f"Error validating request: {str(e)}")
+            return {
+                "Error": "Unable to revert tasks",
+                "SubCode": "InvalidData",
+            }, 400
+        try:
+            ValidatorService.revert_user_validated_tasks(revert_dto)
+            return {"Success": "Successfully reverted tasks"}, 200
+        except MappingServiceError as e:
+            return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
+        except NotFound:
+            return {"Error": "Task not found", "SubCode": "NotFound"}, 404
+        except Exception as e:
+            error_msg = f"RevertUserTasksAPI - unhandled error: {str(e)}"
+            current_app.logger.critical(error_msg)
+            return {
+                "Error": "Unable to revert tasks",
+                "SubCode": "InternalServerError",
+            }, 500

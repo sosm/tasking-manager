@@ -10,17 +10,17 @@ import { useSetTitleTag } from '../hooks/UseMetaTags';
 
 export function Settings() {
   useSetTitleTag(`Settings`);
-  const token = useSelector((state) => state.auth.get('token'));
-  const userDetails = useSelector((state) => state.auth.get('userDetails'));
+  const token = useSelector((state) => state.auth.token);
+  const userDetails = useSelector((state) => state.auth.userDetails);
 
   if (token) {
     return (
       <div className="pull-center">
         <UserTopBar />
-        <div className="cf pa4 bg-tan">
+        <div className="cf pa4 pb5 bg-blue-light-paper">
           <div className="fl w-100 w-60-l pb3 pr3-l">
             <UserInterestsForm />
-	    <UserSettingsForm />
+            <UserSettingsForm />
             {userDetails.isExpert && <APIKeyCard token={token} />}
           </div>
           <div className="fl w-100 w-40-l pb3 pl3-l">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 
-import { viewport } from '@mapbox/geo-viewport';
+import { viewport } from '@placemarkio/geo-viewport';
 import { FormattedMessage } from 'react-intl';
 
 import messages from './messages';
@@ -23,7 +23,7 @@ import { Dropdown } from '../dropdown';
 import { CommentInputField } from '../comments/commentInput';
 
 const PostComment = ({ projectId, taskId, contributors, setCommentPayload }) => {
-  const token = useSelector((state) => state.auth.get('token'));
+  const token = useSelector((state) => state.auth.token);
   const [comment, setComment] = useState('');
 
   const pushComment = () => {
@@ -52,8 +52,9 @@ const PostComment = ({ projectId, taskId, contributors, setCommentPayload }) => 
         <CommentInputField
           comment={comment}
           setComment={setComment}
-          enableHashtagPaste={true}
+          enableHashtagPaste
           contributors={contributors}
+          enableContributorsHashtag
         />
       </div>
       <div className="w-20 fr pt3 tr">
@@ -66,7 +67,7 @@ const PostComment = ({ projectId, taskId, contributors, setCommentPayload }) => 
 };
 
 export const TaskHistory = ({ projectId, taskId, commentPayload }) => {
-  const token = useSelector((state) => state.auth.get('token'));
+  const token = useSelector((state) => state.auth.token);
   const [history, setHistory] = useState([]);
   const [taskComments, setTaskComments] = useState([]);
   const [taskChanges, setTaskChanges] = useState([]);
@@ -124,6 +125,12 @@ export const TaskHistory = ({ projectId, taskId, commentPayload }) => {
         break;
       case 'AUTO_UNLOCKED_FOR_VALIDATION':
         message = messages.taskHistoryAutoUnlockedValidation;
+        break;
+      case 'EXTENDED_FOR_MAPPING':
+        message = messages.taskHistoryExtendedForMapping;
+        break;
+      case 'EXTENDED_FOR_VALIDATION':
+        message = messages.taskHistoryExtendedForValidation;
         break;
       case 'STATE_CHANGE':
         switch (actionText) {
@@ -264,11 +271,16 @@ export const TaskActivity = ({
   updateActivities,
   userCanValidate,
 }: Object) => {
-  const token = useSelector((state) => state.auth.get('token'));
-  const userDetails = useSelector((state) => state.auth.get('userDetails'));
+  const token = useSelector((state) => state.auth.token);
+  const userDetails = useSelector((state) => state.auth.userDetails);
   // use it to hide the reset task action button
   const [resetSuccess, setResetSuccess] = useState(false);
   const [commentPayload, setCommentPayload] = useState(null);
+
+  const uniqueContributors =
+    commentPayload &&
+    commentPayload.taskHistory &&
+    getTaskContributors(commentPayload.taskHistory, userDetails.username);
 
   const getHistory = useCallback(
     () =>
@@ -340,7 +352,7 @@ export const TaskActivity = ({
           </div>
         </div>
       </div>
-      <div className="blue-dark overflow-scroll vh-50">
+      <div className="blue-dark overflow-y-auto vh-50">
         <TaskHistory
           projectId={project.projectId}
           taskId={taskId}
@@ -351,11 +363,7 @@ export const TaskActivity = ({
         projectId={project.projectId}
         taskId={taskId}
         setCommentPayload={setCommentPayload}
-        contributors={
-          commentPayload && commentPayload.taskHistory
-            ? getTaskContributors(commentPayload.taskHistory, userDetails.username)
-            : []
-        }
+        contributors={uniqueContributors}
       />
     </div>
   );
