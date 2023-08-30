@@ -1,15 +1,14 @@
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen } from '@testing-library/react';
 
-import { IntlProviders } from '../../../utils/testWithIntl';
+import { IntlProviders, renderWithRouter } from '../../../utils/testWithIntl';
 import { userTasks } from '../../../network/tests/mockData/tasksStats';
 import { TaskResults, TaskCards } from '../taskResults';
 import messages from '../messages';
 
 describe('Task Results Component', () => {
   it('should display loading indicator when tasks are loading', () => {
-    const { container } = render(
+    const { container } = renderWithRouter(
       <IntlProviders>
         <TaskResults state={{ isLoading: true }} />
       </IntlProviders>,
@@ -19,7 +18,7 @@ describe('Task Results Component', () => {
 
   it('should prompt user to retry on failure to fetch tasks', async () => {
     const retryFnMock = jest.fn();
-    render(
+    const { user } = renderWithRouter(
       <IntlProviders>
         <TaskResults state={{ isError: true, isLoading: false, tasks: [] }} retryFn={retryFnMock} />
       </IntlProviders>,
@@ -29,12 +28,12 @@ describe('Task Results Component', () => {
       name: messages.retry.defaultMessage,
     });
     expect(retryBtn).toBeInTheDocument();
-    await userEvent.click(retryBtn);
+    await user.click(retryBtn);
     expect(retryFnMock).toHaveBeenCalled();
   });
 
   it('should display pagination details', () => {
-    render(
+    renderWithRouter(
       <IntlProviders>
         <TaskResults state={{ ...userTasks, isLoading: false, isError: false }} />
       </IntlProviders>,
@@ -43,7 +42,7 @@ describe('Task Results Component', () => {
   });
 
   it('should display fetched tasks', () => {
-    render(
+    renderWithRouter(
       <IntlProviders>
         <TaskResults state={{ ...userTasks, isLoading: false }} />
       </IntlProviders>,
@@ -59,7 +58,7 @@ describe('Task Results Component', () => {
 
 describe('TaskCards Component', () => {
   it('should display no contributions text if user has no tasks available', () => {
-    render(
+    renderWithRouter(
       <IntlProviders>
         <TaskCards pageOfCards={[]} />
       </IntlProviders>,
@@ -68,7 +67,7 @@ describe('TaskCards Component', () => {
   });
 
   it('should display passed page of tasks into TaskCard', () => {
-    render(
+    renderWithRouter(
       <IntlProviders>
         <TaskCards pageOfCards={userTasks.tasks} />
       </IntlProviders>,

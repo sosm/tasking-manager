@@ -1,5 +1,5 @@
 import React, { useRef, Fragment } from 'react';
-import { Link } from '@reach/router';
+import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { FormattedMessage } from 'react-intl';
 
@@ -36,10 +36,10 @@ const menuItems = [
     href: '#contributions',
     label: <FormattedMessage {...messages.contributions} />,
   },
-  // {
-  //   href: '#relatedProjects',
-  //   label: <FormattedMessage {...messages.relatedProjects} />,
-  // },
+  {
+    href: '#similarProjects',
+    label: <FormattedMessage {...messages.similarProjects} />,
+  },
 ];
 
 export const ProjectDetailFooter = ({ className, projectId }) => {

@@ -62,15 +62,13 @@ class MappingService:
             TaskStatus.LOCKED_FOR_VALIDATION,
             TaskStatus.READY,
         ]:
-
             last_action = TaskHistory.get_last_action(task.project_id, task.id)
 
             # User requesting task made the last change, so they are allowed to undo it.
-            if last_action.user_id == int(
-                logged_in_user_id
-            ) or ProjectService.is_user_permitted_to_validate(
+            is_user_permitted, _ = ProjectService.is_user_permitted_to_validate(
                 task.project_id, logged_in_user_id
-            ):
+            )
+            if last_action.user_id == int(logged_in_user_id) or is_user_permitted:
                 return True
 
         return False
@@ -223,9 +221,9 @@ class MappingService:
         root = ET.Element(
             "gpx",
             attrib=dict(
-                xmlns="http://www.topografix.com/GPX/1/1",
                 version="1.1",
                 creator="HOT Tasking Manager",
+                xmlns="http://www.topografix.com/GPX/1/1",
             ),
         )
 
@@ -249,7 +247,7 @@ class MappingService:
 
         # Construct trkseg elements
         if task_ids_str is not None:
-            task_ids = map(int, task_ids_str.split(","))
+            task_ids = list(map(int, task_ids_str.split(",")))
             tasks = Task.get_tasks(project_id, task_ids)
             if not tasks or len(tasks) == 0:
                 raise NotFound()
@@ -260,7 +258,7 @@ class MappingService:
 
         for task in tasks:
             task_geom = shape.to_shape(task.geometry)
-            for poly in task_geom:
+            for poly in task_geom.geoms:
                 trkseg = ET.SubElement(trk, "trkseg")
                 for point in poly.exterior.coords:
                     ET.SubElement(
@@ -289,7 +287,7 @@ class MappingService:
         )
 
         if task_ids_str:
-            task_ids = map(int, task_ids_str.split(","))
+            task_ids = list(map(int, task_ids_str.split(",")))
             tasks = Task.get_tasks(project_id, task_ids)
             if not tasks or len(tasks) == 0:
                 raise NotFound()
@@ -306,7 +304,7 @@ class MappingService:
                 "way",
                 attrib=dict(id=str((task.id * -1)), action="modify", visible="true"),
             )
-            for poly in task_geom:
+            for poly in task_geom.geoms:
                 for point in poly.exterior.coords:
                     ET.SubElement(
                         root,
@@ -331,7 +329,6 @@ class MappingService:
     ) -> TaskDTO:
         """Allows a user to Undo the task state they updated"""
         task = MappingService.get_task(task_id, project_id)
-
         if not MappingService._is_task_undoable(user_id, task):
             raise MappingServiceError(
                 "UndoPermissionError- Undo not allowed for this user"

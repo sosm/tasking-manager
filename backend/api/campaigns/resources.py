@@ -54,10 +54,6 @@ class CampaignsRestAPI(Resource):
             return campaign.to_primitive(), 200
         except NotFound:
             return {"Error": "No campaign found", "SubCode": "NotFound"}, 404
-        except Exception as e:
-            error_msg = f"Campaign GET - unhandled error: {str(e)}"
-            current_app.logger.critical(error_msg)
-            return {"Error": error_msg, "SubCode": "InternalServerError"}, 500
 
     @token_auth.login_required
     def patch(self, campaign_id):
@@ -116,6 +112,8 @@ class CampaignsRestAPI(Resource):
                 description: Unauthorized - Invalid credentials
             403:
                 description: Forbidden
+            404:
+                description: Campaign not found
             409:
                 description: Resource duplication
             500:
@@ -146,10 +144,6 @@ class CampaignsRestAPI(Resource):
         except ValueError:
             error_msg = "Campaign PATCH - name already exists"
             return {"Error": error_msg, "SubCode": "NameExists"}, 409
-        except Exception as e:
-            error_msg = f"Campaign PATCH - unhandled error: {str(e)}"
-            current_app.logger.critical(error_msg)
-            return {"Error": error_msg, "SubCode": "InternalServerError"}, 500
 
     @token_auth.login_required
     def delete(self, campaign_id):
@@ -186,6 +180,8 @@ class CampaignsRestAPI(Resource):
                 description: Unauthorized - Invalid credentials
             403:
                 description: Forbidden
+            404:
+                description: Campaign not found
             500:
                 description: Internal Server Error
         """
@@ -205,10 +201,6 @@ class CampaignsRestAPI(Resource):
             return {"Success": "Campaign deleted"}, 200
         except NotFound:
             return {"Error": "Campaign not found", "SubCode": "NotFound"}, 404
-        except Exception as e:
-            error_msg = f"Campaign DELETE - unhandled error: {str(e)}"
-            current_app.logger.critical(error_msg)
-            return {"Error": error_msg, "SubCode": "InternalServerError"}, 500
 
 
 class CampaignsAllAPI(Resource):
@@ -226,13 +218,8 @@ class CampaignsAllAPI(Resource):
             500:
                 description: Internal Server Error
         """
-        try:
-            campaigns = CampaignService.get_all_campaigns()
-            return campaigns.to_primitive(), 200
-        except Exception as e:
-            error_msg = f"User GET - unhandled error: {str(e)}"
-            current_app.logger.critical(error_msg)
-            return {"Error": error_msg, "SubCode": "InternalServerError"}, 500
+        campaigns = CampaignService.get_all_campaigns()
+        return campaigns.to_primitive(), 200
 
     @token_auth.login_required
     def post(self):
@@ -279,7 +266,7 @@ class CampaignsAllAPI(Resource):
                             1
                         ]
         responses:
-            200:
+            201:
                 description: New campaign created successfully
             401:
                 description: Unauthorized - Invalid credentials
@@ -309,10 +296,6 @@ class CampaignsAllAPI(Resource):
 
         try:
             campaign = CampaignService.create_campaign(campaign_dto)
-            return {"campaignId": campaign.id}, 200
+            return {"campaignId": campaign.id}, 201
         except ValueError as e:
             return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 409
-        except Exception as e:
-            error_msg = f"Campaign POST - unhandled error: {str(e)}"
-            current_app.logger.critical(error_msg)
-            return {"Error": error_msg, "SubCode": "InternalServerError"}, 500

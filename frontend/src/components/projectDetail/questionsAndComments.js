@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { FormattedMessage } from 'react-intl';
 
@@ -10,24 +10,26 @@ import { Button } from '../button';
 import { Alert } from '../alert';
 import { CommentInputField } from '../comments/commentInput';
 import { MessageStatus } from '../comments/status';
-import { CurrentUserAvatar, UserAvatar } from '../user/avatar';
+import { UserAvatar } from '../user/avatar';
 import { htmlFromMarkdown, formatUserNamesToLink } from '../../utils/htmlFromMarkdown';
 import { pushToLocalJSONAPI, fetchLocalJSONAPI } from '../../network/genericJSONRequest';
+import { useFetchWithAbort } from '../../hooks/UseFetch';
+import { useEditProjectAllowed } from '../../hooks/UsePermissions';
+import { DeleteButton } from '../teamsAndOrgs/management';
 
 import './styles.scss';
 
 export const PostProjectComment = ({ projectId, updateComments, contributors }) => {
   const token = useSelector((state) => state.auth.token);
   const [comment, setComment] = useState('');
-  const [isShowPreview, setIsShowPreview] = useState(false);
 
   const saveComment = () => {
     return pushToLocalJSONAPI(
       `projects/${projectId}/comments/`,
       JSON.stringify({ message: comment }),
       token,
-    ).then((res) => {
-      updateComments(res);
+    ).then(() => {
+      updateComments();
       setComment('');
     });
   };
@@ -35,36 +37,14 @@ export const PostProjectComment = ({ projectId, updateComments, contributors }) 
 
   return (
     <div className="w-100 cf mh4 pv4 bg-white center shadow-7 ba0 br1 post-comment-ctr">
-      <div className="cf w-100 flex mb3">
-        <CurrentUserAvatar className="w3 h3 fr ph2 br-100" />
-        <div className="pt3-ns ph3 ph3-m ml3 bg-grey-light dib">
-          <span
-            role="button"
-            className={`pointer db dib-ns pb1 bb bw1 ${
-              !isShowPreview ? 'b--blue-dark' : 'b--grey-light'
-            }`}
-            onClick={() => setIsShowPreview(false)}
-          >
-            <FormattedMessage {...messages.write} />
-          </span>
-          <span
-            role="button"
-            className={`pointer ml3 db dib-ns pb1 bb bw1 ${
-              isShowPreview ? 'b--blue-dark' : 'b--grey-light'
-            }`}
-            onClick={() => setIsShowPreview(true)}
-          >
-            <FormattedMessage {...messages.preview} />
-          </span>
-        </div>
-      </div>
       <div className={`w-100 h-100`} style={{ position: 'relative', display: 'block' }}>
         <CommentInputField
           comment={comment}
           setComment={setComment}
-          enableHashtagPaste={true}
-          isShowPreview={isShowPreview}
-          isProjectDetailCommentSection={true}
+          enableHashtagPaste
+          isShowUserPicture
+          isShowFooter
+          isShowTabNavs
           contributors={contributors?.userContributions?.map((user) => user.username)}
         />
       </div>
@@ -86,22 +66,19 @@ export const PostProjectComment = ({ projectId, updateComments, contributors }) 
   );
 };
 
-export const QuestionsAndComments = ({ projectId, contributors, titleClass }) => {
+export const QuestionsAndComments = ({ project, contributors, titleClass }) => {
   const token = useSelector((state) => state.auth.token);
-  const [comments, setComments] = useState(null);
   const [page, setPage] = useState(1);
+  const [userCanEditProject] = useEditProjectAllowed(project);
+  const projectId = project.projectId;
 
   const handlePagination = (val) => {
     setPage(val);
   };
 
-  useEffect(() => {
-    if (projectId && page) {
-      fetchLocalJSONAPI(`projects/${projectId}/comments/?perPage=5&page=${page}`, token).then(
-        (res) => setComments(res),
-      );
-    }
-  }, [page, projectId, token]);
+  const [, , comments, refetch] = useFetchWithAbort(
+    `projects/${projectId}/comments/?perPage=5&page=${page}`,
+  );
 
   return (
     <div className="bg-tan-dim">
@@ -109,15 +86,20 @@ export const QuestionsAndComments = ({ projectId, contributors, titleClass }) =>
         <FormattedMessage {...messages.questionsAndComments} />
       </h3>
       <div className="ph6-l ph4 pb5 w-100 w-70-l">
-        {comments && comments.chat.length ? (
-          <CommentList comments={comments.chat} />
+        {comments?.chat?.length ? (
+          <CommentList
+            userCanEditProject={userCanEditProject}
+            projectId={projectId}
+            comments={comments.chat}
+            retryFn={refetch}
+          />
         ) : (
           <div className="pv4 blue-grey tc">
             <FormattedMessage {...messages.noComments} />
           </div>
         )}
 
-        {comments && comments.pagination && comments.pagination.pages > 0 && (
+        {comments?.pagination?.pages > 0 && (
           <PaginatorLine
             activePage={page}
             setPageFn={handlePagination}
@@ -128,7 +110,7 @@ export const QuestionsAndComments = ({ projectId, contributors, titleClass }) =>
         {token ? (
           <PostProjectComment
             projectId={projectId}
-            updateComments={setComments}
+            updateComments={refetch}
             contributors={contributors}
           />
         ) : (
@@ -143,32 +125,59 @@ export const QuestionsAndComments = ({ projectId, contributors, titleClass }) =>
   );
 };
 
-function CommentList({ comments }: Object) {
+export function CommentList({ userCanEditProject, projectId, comments, retryFn }: Object) {
+  const token = useSelector((state) => state.auth.token);
+  const username = useSelector((state) => state.auth.userDetails.username);
+
+  const deleteComment = (commentId) => {
+    fetchLocalJSONAPI(`projects/${projectId}/comments/${commentId}/`, token, 'DELETE')
+      .then(() => {
+        retryFn();
+      })
+      .catch((e) => {
+        console.log(e.message);
+      });
+  };
+
   return (
     <div className="pt3">
-      {comments.map((comment, n) => (
+      {comments.map((comment) => (
         <div
           className="w-100 center cf mb2 ba0 br1 b--grey-light bg-white shadow-7 comment-item"
-          key={n}
+          key={comment.id}
         >
-          <div className="flex items-center">
-            <div className="">
-              {comment.pictureUrl === null ? null : (
+          <div className="flex justify-between">
+            <div className="flex items-center">
+              <div className="">
                 <UserAvatar
                   username={comment.username}
                   picture={comment.pictureUrl}
                   colorClasses="white bg-blue-grey"
                   size="medium"
                 />
-              )}
+              </div>
+              <div className="ml2">
+                <a
+                  href={`/users/${comment.username}`}
+                  className="blue-dark fw5 link underline-hover"
+                >
+                  {comment.username}
+                </a>
+                <p className="blue-grey f6 ma0">
+                  <RelativeTimeWithUnit date={comment.timestamp} />
+                </p>
+              </div>
             </div>
-            <div className="ml2">
-              <a href={`/users/${comment.username}`} className="blue-dark fw5 link underline-hover">
-                {comment.username}
-              </a>
-              <p className="blue-grey f6 ma0">
-                <RelativeTimeWithUnit date={comment.timestamp} />
-              </p>
+            <div>
+              {(userCanEditProject || comment.username === username) && (
+                <DeleteButton
+                  className={`bg-transparent bw0 w2 h2 lh-copy overflow-hidden blue-light p0 mb1 hover-red`}
+                  showText={false}
+                  onClick={() => {
+                    deleteComment(comment.id);
+                  }}
+                />
+              )}
             </div>
           </div>
           <div

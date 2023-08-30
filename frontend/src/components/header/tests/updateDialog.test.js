@@ -1,25 +1,11 @@
 import '@testing-library/jest-dom';
 import { screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 import messages from '../messages';
 import { UpdateDialog } from '../updateDialog';
 import { IntlProviders, renderWithRouter } from '../../../utils/testWithIntl';
 
 describe('Update Dialog', () => {
-  const originalWindowContext = window.location;
-
-  beforeAll(() => {
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { reload: jest.fn() },
-    });
-  });
-
-  afterAll(() => {
-    Object.defineProperty(window, 'location', { configurable: true, value: originalWindowContext });
-  });
-
   it('should not render prompt for mapping page', () => {
     const { container } = renderWithRouter(
       <IntlProviders>
@@ -70,7 +56,7 @@ describe('Update Dialog', () => {
   });
 
   it('should update the service worker', async () => {
-    renderWithRouter(
+    const { user } = renderWithRouter(
       <IntlProviders>
         <UpdateDialog />
       </IntlProviders>,
@@ -88,7 +74,7 @@ describe('Update Dialog', () => {
         addEventListener: jest.fn(),
       },
     });
-    await userEvent.click(screen.getByRole('button', { name: /refresh/i }));
+    await user.click(screen.getByRole('button', { name: /refresh/i }));
     expect(postMessageMock).toHaveBeenCalled();
   });
 });

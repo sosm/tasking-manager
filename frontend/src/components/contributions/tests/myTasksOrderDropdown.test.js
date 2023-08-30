@@ -1,14 +1,13 @@
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen } from '@testing-library/react';
 
 import MyTasksOrderDropdown from '../myTasksOrderDropdown';
-import { IntlProviders } from '../../../utils/testWithIntl';
+import { IntlProviders, renderWithRouter } from '../../../utils/testWithIntl';
 
 describe('MyTasksOrderDropdown', () => {
   const setQueryMock = jest.fn();
   const setup = async () => {
-    render(
+    const { user } = renderWithRouter(
       <IntlProviders>
         <MyTasksOrderDropdown
           allQueryParams={{
@@ -27,7 +26,8 @@ describe('MyTasksOrderDropdown', () => {
     const dropdownBtn = screen.getByRole('button', {
       name: /sort by/i,
     });
-    await userEvent.click(dropdownBtn);
+    await user.click(dropdownBtn);
+    return { user };
   };
 
   it('displays dropdown options after button is clicked', async () => {
@@ -37,13 +37,13 @@ describe('MyTasksOrderDropdown', () => {
   });
 
   it('should set query when an option is selected', async () => {
-    await setup();
-    await userEvent.click(screen.getByText(/recently edited/i));
+    const { user } = await setup();
+    await user.click(screen.getByText(/recently edited/i));
     expect(setQueryMock).toHaveBeenCalled();
   });
 
   it('should preselect option if the query matches', async () => {
-    render(
+    renderWithRouter(
       <IntlProviders>
         <MyTasksOrderDropdown
           allQueryParams={{

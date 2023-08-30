@@ -1,33 +1,30 @@
 import '@testing-library/jest-dom';
-import userEvent from '@testing-library/user-event';
-import { globalHistory } from '@reach/router';
 import { screen, fireEvent, act, within, waitFor, render } from '@testing-library/react';
 
 import '../../../utils/mockMatchMedia';
 import { IntlProviders, ReduxIntlProviders, renderWithRouter } from '../../../utils/testWithIntl';
-import { ORG_URL, ORG_LOGO, SERVICE_DESK } from '../../../config';
+import { ORG_NAME, ORG_URL, ORG_LOGO, SERVICE_DESK } from '../../../config';
 import { AuthButtons, getMenuItemsForUser, Header, PopupItems } from '..';
 import messages from '../messages';
 import { store } from '../../../store';
 
 describe('Header', () => {
   const setup = () => {
-    renderWithRouter(
-      <ReduxIntlProviders>
-        <Header location={globalHistory.location} />
-      </ReduxIntlProviders>,
-      {
-        route: '/explore',
-      },
-    );
+    return {
+      ...renderWithRouter(
+        <ReduxIntlProviders>
+          <Header />
+        </ReduxIntlProviders>,
+      ),
+    };
   };
 
   it('should render component details', () => {
     setup();
     expect(screen.getByText(messages.slogan.defaultMessage)).toBeInTheDocument();
     if (ORG_URL) {
-      expect(screen.getByText(ORG_URL)).toBeInTheDocument();
-      expect(screen.getByText(ORG_URL).closest('a')).toHaveAttribute('href', `http://${ORG_URL}`);
+      expect(screen.getByText(`${ORG_NAME} Website`)).toBeInTheDocument();
+      expect(screen.getByText(`${ORG_NAME} Website`).closest('a')).toHaveAttribute('href', ORG_URL);
     }
     expect(screen.getByTitle('externalLink')).toBeInTheDocument();
     const orgLogo = screen.getByRole('img');
@@ -63,7 +60,7 @@ describe('Header', () => {
   // it('should use local logo image if no org logo is present', () => {
   //   const { rerender } = renderWithRouter(
   //     <ReduxIntlProviders>
-  //       <Header location={globalHistory.location} />
+  //       <Header />
   //     </ReduxIntlProviders>,
   //   );
 
@@ -82,8 +79,8 @@ describe('Header', () => {
   });
 
   it('should display menu when burger menu icon is clicked', async () => {
-    setup();
-    await userEvent.click(
+    const { user } = setup();
+    await user.click(
       screen.getByRole('button', {
         name: /menu/i,
       }),
@@ -101,7 +98,7 @@ describe('Header', () => {
       screen.getByRole('link', {
         name: /explore projects/i,
       }),
-    ).toHaveClass('bb b--blue-dark bw1 pv2');
+    ).toHaveClass('link mh3 barlow-condensed blue-dark f4 ttu lh-solid nowrap pv2');
     expect(
       screen.getByRole('link', {
         name: /about/i,
@@ -114,7 +111,7 @@ describe('Right side action items', () => {
   const setup = () => {
     renderWithRouter(
       <ReduxIntlProviders>
-        <Header location={globalHistory.location} />
+        <Header />
       </ReduxIntlProviders>,
     );
   };
@@ -162,7 +159,7 @@ describe('Dropdown menu of logged in user', () => {
   const setup = () =>
     renderWithRouter(
       <ReduxIntlProviders>
-        <Header location={globalHistory.location} />
+        <Header />
       </ReduxIntlProviders>,
     );
 
@@ -173,8 +170,8 @@ describe('Dropdown menu of logged in user', () => {
         userDetails: { username: 'somebody' },
       });
     });
-    setup();
-    await userEvent.click(screen.getByText('somebody'));
+    const { user } = setup();
+    await user.click(screen.getByText('somebody'));
   });
 
   it('should log the user out', async () => {
@@ -184,10 +181,10 @@ describe('Dropdown menu of logged in user', () => {
         userDetails: { username: 'somebody' },
       });
     });
-    setup();
-    await userEvent.click(screen.getByText('somebody'));
+    const { user } = setup();
+    await user.click(screen.getByText('somebody'));
     // screen.getByRole('')
-    await userEvent.click(screen.getByText(/Logout/i));
+    await user.click(screen.getByText(/Logout/i));
     await waitFor(() =>
       expect(
         screen.getByRole('button', {
@@ -244,7 +241,7 @@ describe('AuthButtons Component', () => {
 
 describe('PopupItems Component', () => {
   test('when user is logged in', async () => {
-    render(
+    renderWithRouter(
       <ReduxIntlProviders>
         <PopupItems
           menuItems={getMenuItemsForUser({ username: 'somebody', role: 'ADMIN' })}
@@ -270,7 +267,7 @@ describe('PopupItems Component', () => {
   });
 
   test('when user is not logged in', async () => {
-    render(
+    renderWithRouter(
       <ReduxIntlProviders>
         <PopupItems
           menuItems={getMenuItemsForUser({ username: 'somebody', role: 'ADMIN' })}
@@ -302,7 +299,7 @@ describe('PopupItems Component', () => {
   });
 
   it('should log the user out', async () => {
-    const { rerender } = renderWithRouter(
+    const { user, rerender } = renderWithRouter(
       <ReduxIntlProviders>
         <PopupItems
           menuItems={getMenuItemsForUser({ username: 'somebody', role: 'ADMIN' })}
@@ -313,7 +310,6 @@ describe('PopupItems Component', () => {
     const logoutBtn = screen.getByRole('button', {
       name: /logout/i,
     });
-    const user = userEvent.setup();
     await user.click(logoutBtn);
     rerender(
       <ReduxIntlProviders>
@@ -337,7 +333,7 @@ test('users should be prompted to update their email', () => {
   });
   renderWithRouter(
     <ReduxIntlProviders>
-      <Header location={globalHistory.location} />
+      <Header />
     </ReduxIntlProviders>,
   );
   expect(

@@ -563,9 +563,10 @@ class Task(db.Model):
         if type(task_geometry) is not geojson.MultiPolygon:
             raise InvalidGeoJson("MustBeMultiPloygon- Geometry must be a MultiPolygon")
 
-        is_valid_geojson = geojson.is_valid(task_geometry)
-        if is_valid_geojson["valid"] == "no":
-            raise InvalidGeoJson(f"InvalidMultiPolygon- {is_valid_geojson['message']}")
+        if not task_geometry.is_valid:
+            raise InvalidGeoJson(
+                "InvalidMultiPolygon - " + ", ".join(task_geometry.errors())
+            )
 
         task = cls()
         try:
@@ -796,8 +797,13 @@ class Task(db.Model):
             user_id=user_id,
             mapping_issues=issues,
         )
-
-        if (
+        # If undo, clear the mapped_by and validated_by fields
+        if undo:
+            if new_state == TaskStatus.MAPPED:
+                self.validated_by = None
+            elif new_state == TaskStatus.READY:
+                self.mapped_by = None
+        elif (
             new_state in [TaskStatus.MAPPED, TaskStatus.BADIMAGERY]
             and TaskStatus(self.task_status) != TaskStatus.LOCKED_FOR_VALIDATION
         ):
@@ -1126,7 +1132,10 @@ class Task(db.Model):
 
         try:
             instructions = instructions.format(**properties)
-        except KeyError:
+        except (KeyError, ValueError, IndexError):
+            # KeyError is raised if a format string contains a key that is not in the dictionary, e.g. {foo}
+            # ValueError is raised if a format string contains a single { or }
+            # IndexError is raised if a format string contains empty braces, e.g. {}
             pass
         return instructions
 

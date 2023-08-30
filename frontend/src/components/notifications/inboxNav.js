@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { Link } from '@reach/router';
+import { Link } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 
 import messages from './messages';
@@ -10,7 +10,7 @@ import { useInboxQueryParams, stringify } from '../../hooks/UseInboxQueryAPI';
 import { ProjectSearchBox } from '../projects/projectSearchBox';
 import { NotificationOrderBySelector } from './notificationOrderBy';
 
-const filters = [
+export const filters = [
   {
     messageId: 'all',
     isActiveConstraint: 'All',

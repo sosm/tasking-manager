@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
-import { Link } from '@reach/router';
+import { Link } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 import Select from 'react-select';
 
@@ -61,7 +61,7 @@ function _UserSettingsForm(props) {
       </h3>
       <div className="blue-grey">
         <CustomField labelId="expertMode" descriptionId="expertModeDescription">
-          <SwitchToggleField fieldName="isExpert" removeVerticalPadding />
+          <SwitchToggleField fieldName="isExpert" default={false} removeVerticalPadding />
         </CustomField>
         <CustomField labelId="defaultEditor" descriptionId="defaultEditorDescription" isDropdown>
           <EditorDropdown />

@@ -10,7 +10,7 @@ from backend.models.dtos.validator_dto import (
     StopValidationDTO,
     InvalidatedTask,
     InvalidatedTasks,
-    RevertUserValidatedTasksDTO,
+    RevertUserTasksDTO,
 )
 from backend.models.postgis.statuses import ValidatingNotAllowed
 from backend.models.postgis.task import (
@@ -97,7 +97,7 @@ class ValidatorService:
                     )
             else:
                 raise ValidatorServiceError(
-                    f"Validation not allowed because: {error_reason}"
+                    f"ValidtionNotAllowed- Validation not allowed because: {error_reason}"
                 )
 
         # Lock all tasks for validation
@@ -317,7 +317,7 @@ class ValidatorService:
             query = query.filter_by(project_id=project_id)
 
         results = query.order_by(text(sort_by + " " + sort_direction)).paginate(
-            page, page_size, True
+            page=page, per_page=page_size, error_out=True
         )
         project_names = {}
         invalidated_tasks_dto = InvalidatedTasks()
@@ -400,19 +400,24 @@ class ValidatorService:
         )
 
     @staticmethod
-    def revert_user_validated_tasks(revert_dto: RevertUserValidatedTasksDTO):
+    def revert_user_tasks(revert_dto: RevertUserTasksDTO):
         """
-        Reverts all tasks mapped by a user
+        Reverts tasks with supplied action to previous state by specific user
         :raises ValidatorServiceError
         """
         if ProjectAdminService.is_user_action_permitted_on_project(
             revert_dto.action_by, revert_dto.project_id
         ):
-            tasks_to_revert = Task.query.filter(
+            query = Task.query.filter(
                 Task.project_id == revert_dto.project_id,
-                Task.task_status == TaskStatus.VALIDATED.value,
-                Task.validated_by == revert_dto.user_id,
-            ).all()
+                Task.task_status == TaskStatus[revert_dto.action].value,
+            )
+            if TaskStatus[revert_dto.action].value == TaskStatus.BADIMAGERY.value:
+                query = query.filter(Task.mapped_by == revert_dto.user_id)
+            else:
+                query = query.filter(Task.validated_by == revert_dto.user_id)
+
+            tasks_to_revert = query.all()
             for task in tasks_to_revert:
                 task = MappingService.undo_mapping(
                     revert_dto.project_id,

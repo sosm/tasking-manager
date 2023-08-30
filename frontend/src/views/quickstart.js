@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from '@reach/router';
+import { Link } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 
 import messages from './messages';
@@ -146,7 +146,7 @@ export function QuickstartPage() {
           {steps.map((v, i) => {
             const idx = i + 1;
             return (
-              <div className="pv2">
+              <div className="pv2" key={v.message}>
                 <p>
                   <span className="b mr1">{idx}.</span>
                   {<FormattedMessage {...messages[v.message]} values={v.values} />}

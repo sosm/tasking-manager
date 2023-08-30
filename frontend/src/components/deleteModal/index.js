@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from '@reach/router';
+import { useNavigate } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 import Popup from 'reactjs-popup';
 
@@ -24,7 +24,7 @@ export function DeleteModal({ id, name, type, className }: Object) {
         if (type === 'notifications') {
           setTimeout(() => navigate(`/inbox`), 750);
         } else {
-          setTimeout(() => navigate(`/manage/${type}`), 750);
+          setTimeout(() => navigate(`/manage/${type !== 'interests' ? type : 'categories'}`), 750);
         }
       })
       .catch((e) => {

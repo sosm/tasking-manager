@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { screen } from '@testing-library/react';
 
@@ -15,6 +14,7 @@ import {
 import { JoinRequests, Members } from '../members';
 import { UserAvatar } from '../../user/avatar';
 import { Button } from '../../button';
+import { MemoryRouter } from 'react-router-dom';
 
 describe('test JoinRequest list', () => {
   const requests = [
@@ -27,9 +27,11 @@ describe('test JoinRequest list', () => {
     { username: 'test_2', function: 'MEMBER', active: false, pictureUrl: null },
   ];
   const element = createComponentWithIntl(
-    <Provider store={store}>
-      <JoinRequests requests={requests} managers={[]} />
-    </Provider>,
+    <MemoryRouter>
+      <Provider store={store}>
+        <JoinRequests requests={requests} managers={[]} />
+      </Provider>
+    </MemoryRouter>,
   );
   const testInstance = element.root;
   it('initial div has the correct classes', () => {
@@ -61,9 +63,11 @@ describe('test JoinRequest list', () => {
 
 describe('test JoinRequest list without requests', () => {
   const element = createComponentWithIntl(
-    <Provider store={store}>
-      <JoinRequests requests={[]} managers={[]} />
-    </Provider>,
+    <MemoryRouter>
+      <Provider store={store}>
+        <JoinRequests requests={[]} managers={[]} />
+      </Provider>
+    </MemoryRouter>,
   );
   const testInstance = element.root;
   it('initial div has the correct classes', () => {
@@ -118,12 +122,11 @@ describe('Members Component', () => {
   });
 
   it('should display actionable buttons when edit button is clicked', async () => {
-    renderWithRouter(
+    const { user } = renderWithRouter(
       <ReduxIntlProviders>
         <Members members={[]} />
       </ReduxIntlProviders>,
     );
-    const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: messages.edit.defaultMessage }));
     expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(
@@ -137,12 +140,11 @@ describe('Members Component', () => {
 
   it('should not display cross icon with only one member present', async () => {
     const mockRemoveMembers = jest.fn();
-    const { container } = renderWithRouter(
+    const { user, container } = renderWithRouter(
       <ReduxIntlProviders>
         <Members members={[usersList.users[0]]} removeMembers={mockRemoveMembers} />
       </ReduxIntlProviders>,
     );
-    const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: messages.edit.defaultMessage }));
     // Matching with that one SVG being displayed from the react-select
     expect(container.querySelectorAll('svg').length).toBe(1);

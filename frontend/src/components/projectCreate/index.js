@@ -1,6 +1,6 @@
-import React, { useState, useLayoutEffect, useCallback, Suspense } from 'react';
+import React, { useState, useLayoutEffect, useCallback, Suspense, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Redirect, navigate } from '@reach/router';
+import { useNavigate } from 'react-router-dom';
 import { useQueryParam, NumberParam } from 'use-query-params';
 import { FormattedMessage, FormattedNumber, useIntl } from 'react-intl';
 import ReactPlaceholder from 'react-placeholder';
@@ -9,10 +9,12 @@ import area from '@turf/area';
 import bbox from '@turf/bbox';
 import { featureCollection } from '@turf/helpers';
 import truncate from '@turf/truncate';
+import toast from 'react-hot-toast';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 
 import messages from './messages';
+import viewsMessages from '../../views/messages';
 import { createProject } from '../../store/actions/project';
 import { store } from '../../store';
 import { fetchLocalJSONAPI, pushToLocalJSONAPI } from '../../network/genericJSONRequest';
@@ -36,9 +38,10 @@ const ProjectCreationMap = React.lazy(() =>
   import('./projectCreationMap' /* webpackChunkName: "projectCreationMap" */),
 );
 
-const ProjectCreate = (props) => {
+const ProjectCreate = () => {
   const intl = useIntl();
   const token = useSelector((state) => state.auth.token);
+  const navigate = useNavigate();
   const [drawModeIsActive, setDrawModeIsActive] = useState(false);
   const [showProjectsAOILayer, setShowProjectsAOILayer] = useState(false);
 
@@ -211,20 +214,32 @@ const ProjectCreate = (props) => {
         projectParams.cloneFromProjectId = cloneProjectData.id;
       }
       pushToLocalJSONAPI('projects/', JSON.stringify(projectParams), token)
-        .then((res) => navigate(`/manage/projects/${res.projectId}`))
-        .catch((e) =>
+        .then((res) => {
+          toast.success(
+            <FormattedMessage
+              {...viewsMessages.entityCreationSuccess}
+              values={{
+                entity: 'project',
+              }}
+            />,
+          );
+          navigate(`/manage/projects/${res.projectId}`);
+        })
+        .catch((e) => {
           setErr({
             error: true,
             message: <FormattedMessage {...messages.creationFailed} values={{ error: e }} />,
-          }),
-        );
+          });
+        });
     },
-    [metadata, setErr, intl, token],
+    [metadata, token, intl, navigate],
   );
 
-  if (!token) {
-    return <Redirect to={'/login'} noThrow />;
-  }
+  useEffect(() => {
+    if (!token) {
+      return navigate('/login');
+    }
+  }, [navigate, token]);
 
   const renderCurrentStep = () => {
     switch (step) {

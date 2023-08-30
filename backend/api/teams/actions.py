@@ -12,6 +12,8 @@ from backend.services.team_service import (
 from backend.services.users.authentication_service import token_auth, tm
 from backend.models.postgis.user import User
 
+TEAM_NOT_FOUND = "Team not found"
+
 
 class TeamsActionsJoinAPI(Resource):
     @token_auth.login_required
@@ -53,9 +55,7 @@ class TeamsActionsJoinAPI(Resource):
         except TeamServiceError as e:
             return {"Error": str(e), "SubCode": "InvalidRequest"}, 400
         except NotFound:
-            return {"Error": "Team not found", "SubCode": "NotFound"}, 404
-        except Exception as e:
-            return {"Error": str(e), "SubCode": "InternalServerError"}, 500
+            return {"Error": TEAM_NOT_FOUND, "SubCode": "NotFound"}, 404
 
     @tm.pm_only(False)
     @token_auth.login_required
@@ -145,15 +145,8 @@ class TeamsActionsJoinAPI(Resource):
                     team_id, authenticated_user_id, username, role, action
                 )
                 return {"Success": "True"}, 200
-        except NotFound as e:
-            return {"Error": str(e), "SubCode": "NotFound"}, 404
-        except Exception as e:
-            error_msg = f"Team Join PUT - unhandled error: {str(e)}"
-            current_app.logger.critical(error_msg)
-            return {
-                "Error": error_msg,
-                "SubCode": "InternalServerError",
-            }, 500
+        except NotFound:
+            return {"Error": TEAM_NOT_FOUND, "SubCode": "NotFound"}, 404
 
 
 class TeamsActionsAddAPI(Resource):
@@ -218,10 +211,6 @@ class TeamsActionsAddAPI(Resource):
             return {"Success": "User added to the team"}, 200
         except TeamJoinNotAllowed as e:
             return {"Error": str(e).split("-")[1], "SubCode": str(e).split("-")[0]}, 403
-        except Exception as e:
-            error_msg = f"User POST - unhandled error: {str(e)}"
-            current_app.logger.critical(error_msg)
-            return {"Error": error_msg, "SubCode": "InternalServerError"}, 500
 
 
 class TeamsActionsLeaveAPI(Resource):
@@ -290,13 +279,6 @@ class TeamsActionsLeaveAPI(Resource):
                 )
         except NotFound:
             return {"Error": "No team member found", "SubCode": "NotFound"}, 404
-        except Exception as e:
-            error_msg = f"TeamMembers DELETE - unhandled error: {str(e)}"
-            current_app.logger.critical(error_msg)
-            return {
-                "Error": error_msg,
-                "SubCode": "InternalServerError",
-            }, 500
 
 
 class TeamsActionsMessageMembersAPI(Resource):
@@ -353,7 +335,10 @@ class TeamsActionsMessageMembersAPI(Resource):
             try:
                 team = TeamService.get_team_by_id(team_id)
             except NotFound:
-                return {"Error": "Team not found"}, 404
+                return {
+                    "Error": TEAM_NOT_FOUND,
+                    "SubCode": "NotFound",
+                }, 404
 
             is_manager = TeamService.is_user_team_manager(
                 team_id, authenticated_user_id
@@ -387,10 +372,3 @@ class TeamsActionsMessageMembersAPI(Resource):
             return {"Success": "Message sent successfully"}, 200
         except ValueError as e:
             return {"Error": str(e)}, 403
-        except Exception as e:
-            error_msg = f"Send message all - unhandled error: {str(e)}"
-            current_app.logger.critical(error_msg)
-            return {
-                "Error": "Unable to send messages to team members",
-                "SubCode": "InternalServerError",
-            }, 500

@@ -133,14 +133,6 @@ export default defineMessages({
     id: 'project.detail.questionsAndComments.login',
     defaultMessage: 'Log in to be able to post comments.',
   },
-  write: {
-    id: 'project.detail.questionsAndComments.write',
-    defaultMessage: 'Write',
-  },
-  preview: {
-    id: 'project.detail.questionsAndComments.preview',
-    defaultMessage: 'Preview',
-  },
   post: {
     id: 'project.detail.questionsAndComments.button',
     defaultMessage: 'Post',
@@ -239,9 +231,9 @@ export default defineMessages({
     id: 'project.detail.sections.contributors',
     defaultMessage: 'Contributors',
   },
-  relatedProjects: {
-    id: 'project.detail.sections.relatedProjects',
-    defaultMessage: 'Related projects',
+  similarProjects: {
+    id: 'project.detail.sections.similarProjects',
+    defaultMessage: 'Similar projects',
   },
   timelineNotAvailable: {
     id: 'project.detail.sections.contributions.timelineError',
@@ -318,5 +310,9 @@ export default defineMessages({
   exploreOtherProjects: {
     id: 'project.inaccessible.exploreOtherProjects',
     defaultMessage: 'Explore other projects',
+  },
+  noSimilarProjectsFound: {
+    id: 'project.noSimilarProjectsFound',
+    defaultMessage: 'Could not find any similar projects for this project',
   },
 });

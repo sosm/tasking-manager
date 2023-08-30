@@ -1,6 +1,6 @@
 import React, { Fragment, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Link, navigate } from '@reach/router';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Popup from 'reactjs-popup';
 import { FormattedMessage } from 'react-intl';
 
@@ -25,8 +25,10 @@ import { HorizontalScroll } from '../horizontalScroll';
 
 import './styles.scss';
 
-export const Header = (props) => {
+export const Header = () => {
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
   const menuItemsContainerRef = useRef(null);
 
   const userDetails = useSelector((state) => state.auth.userDetails);
@@ -93,8 +95,8 @@ export const Header = (props) => {
             </span>
           </div>
           <div className="tr red">
-            <a className="link red f6 mr2" href={`http://${ORG_URL}`}>
-              {ORG_URL}
+            <a className="link red f6 mr2" href={`${ORG_URL}`} target="_blank" rel="noreferrer">
+              {ORG_NAME} Website
               <ExternalLinkIcon
                 title="externalLink"
                 className="pl2 v-btm"
@@ -131,7 +133,7 @@ export const Header = (props) => {
           <ActionItems
             userDetails={userDetails}
             onUserMenuSelect={onUserMenuSelect}
-            location={props.location}
+            location={location}
             getUserLinks={getUserLinks}
           />
           <div className="dib v-mid dn-l">
@@ -142,7 +144,7 @@ export const Header = (props) => {
                     userDetails={userDetails}
                     menuItems={getMenuItemsForUser(userDetails)}
                     linkCombo={linkCombo}
-                    location={props.location}
+                    location={location}
                     close={close}
                   />
                 </div>
@@ -164,7 +166,7 @@ export function getMenuItemsForUser(userDetails, organisations) {
       authenticated: true,
     },
     { label: messages.manage, link: 'manage', authenticated: true, manager: true },
-    { label: messages.learn, link: 'learn', showAlways: true },
+    { label: messages.learn, link: 'learn/map', showAlways: true },
     { label: messages.about, link: 'about', showAlways: true },
   ];
 

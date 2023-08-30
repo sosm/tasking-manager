@@ -1,14 +1,15 @@
 import '@testing-library/jest-dom';
 import TestRenderer from 'react-test-renderer';
-import userEvent from '@testing-library/user-event';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { FormattedMessage } from 'react-intl';
+import { MemoryRouter } from 'react-router-dom';
 
 import {
   createComponentWithIntl,
   ReduxIntlProviders,
   IntlProviders,
   renderWithRouter,
+  createComponentWithMemoryRouter,
 } from '../../../utils/testWithIntl';
 import { TeamBox, TeamsBoxList, TeamsManagement, Teams, TeamCard, TeamSideBar } from '../teams';
 import { store } from '../../../store';
@@ -33,10 +34,12 @@ const dummyTeams = [
 
 describe('test TeamBox', () => {
   const element = TestRenderer.create(
-    <TeamBox
-      team={{ teamId: 1, name: 'Contributors', role: 'VALIDATOR' }}
-      className="tc f6 ba dib"
-    />,
+    <MemoryRouter>
+      <TeamBox
+        team={{ teamId: 1, name: 'Contributors', role: 'VALIDATOR' }}
+        className="tc f6 ba dib"
+      />
+    </MemoryRouter>,
   );
   const testInstance = element.root;
   it('props are correctly set', () => {
@@ -54,16 +57,18 @@ describe('test TeamBox', () => {
 
 describe('test TeamBox with img', () => {
   const element = TestRenderer.create(
-    <TeamBox
-      team={{
-        teamId: 1,
-        name: 'Contributors',
-        role: 'VALIDATOR',
-        organisation: 'My Org',
-        logo: 'http://i.co/1.jpg',
-      }}
-      className="tc f6 ba dib"
-    />,
+    <MemoryRouter>
+      <TeamBox
+        team={{
+          teamId: 1,
+          name: 'Contributors',
+          role: 'VALIDATOR',
+          organisation: 'My Org',
+          logo: 'http://i.co/1.jpg',
+        }}
+        className="tc f6 ba dib"
+      />
+    </MemoryRouter>,
   );
   const testInstance = element.root;
   it('img exists and is correctly formatted', () => {
@@ -79,7 +84,11 @@ describe('test TeamBoxList', () => {
     { teamId: 2, name: 'Private Team', role: 'MAPPER' },
     { teamId: 3, name: 'My Best Team', role: 'PROJECT_MANAGER' },
   ];
-  const element = createComponentWithIntl(<TeamsBoxList teams={teams} />);
+  const element = createComponentWithIntl(
+    <MemoryRouter>
+      <TeamsBoxList teams={teams} />
+    </MemoryRouter>,
+  );
   const testInstance = element.root;
   it('Mapping and validation sections are present', () => {
     expect(testInstance.findAllByType(FormattedMessage)[0].props.id).toBe(
@@ -128,13 +137,16 @@ describe('test TeamBoxList without mapping and validation teams', () => {
 describe('TeamsManagement component', () => {
   it('renders loading placeholder when API is being fetched', async () => {
     const { container, getByRole } = render(
-      <ReduxIntlProviders>
-        <TeamsManagement
-          userDetails={{ role: 'ADMIN' }}
-          managementView={true}
-          isTeamsFetched={false}
-        />
-      </ReduxIntlProviders>,
+      <MemoryRouter>
+        <ReduxIntlProviders>
+          <TeamsManagement
+            query={{ searchQuery: undefined }}
+            userDetails={{ role: 'ADMIN' }}
+            managementView={true}
+            isTeamsFetched={false}
+          />
+        </ReduxIntlProviders>
+      </MemoryRouter>,
     );
     expect(
       getByRole('button', {
@@ -147,13 +159,16 @@ describe('TeamsManagement component', () => {
 
   it('does not render loading placeholder after API is fetched', () => {
     const { container } = render(
-      <ReduxIntlProviders>
-        <TeamsManagement
-          userDetails={{ role: 'ADMIN' }}
-          managementView={true}
-          isTeamsFetched={true}
-        />
-      </ReduxIntlProviders>,
+      <MemoryRouter>
+        <ReduxIntlProviders>
+          <TeamsManagement
+            query={{ searchQuery: undefined }}
+            userDetails={{ role: 'ADMIN' }}
+            managementView={true}
+            isTeamsFetched={true}
+          />
+        </ReduxIntlProviders>
+      </MemoryRouter>,
     );
     expect(container.getElementsByClassName('show-loading-animation mb3')).toHaveLength(0);
   });
@@ -163,13 +178,16 @@ describe('TeamsManagement component', () => {
       store.dispatch({ type: 'SET_ORGANISATIONS', organisations: [2, 3] });
     });
     render(
-      <ReduxIntlProviders>
-        <TeamsManagement
-          userDetails={{ role: 'MAPPER' }}
-          managementView={true}
-          isTeamsFetched={true}
-        />
-      </ReduxIntlProviders>,
+      <MemoryRouter>
+        <ReduxIntlProviders>
+          <TeamsManagement
+            query={{ searchQuery: undefined }}
+            userDetails={{ role: 'MAPPER' }}
+            managementView={true}
+            isTeamsFetched={true}
+          />
+        </ReduxIntlProviders>
+      </MemoryRouter>,
     );
     expect(
       screen.getByRole('button', {
@@ -180,13 +198,16 @@ describe('TeamsManagement component', () => {
 
   it("should not render 'Manage teams' but render 'My teams' text for non management view", () => {
     render(
-      <ReduxIntlProviders>
-        <TeamsManagement
-          userDetails={{ role: 'ADMIN' }}
-          managementView={true}
-          isTeamsFetched={true}
-        />
-      </ReduxIntlProviders>,
+      <MemoryRouter>
+        <ReduxIntlProviders>
+          <TeamsManagement
+            query={{ searchQuery: undefined }}
+            userDetails={{ role: 'ADMIN' }}
+            managementView={true}
+            isTeamsFetched={true}
+          />
+        </ReduxIntlProviders>
+      </MemoryRouter>,
     );
     expect(
       screen.getByRole('heading', {
@@ -202,14 +223,17 @@ describe('TeamsManagement component', () => {
 
   it('renders teams list card after API is fetched', async () => {
     const { container, getByText } = render(
-      <ReduxIntlProviders>
-        <TeamsManagement
-          teams={dummyTeams}
-          userDetails={{ role: 'ADMIN' }}
-          managementView={true}
-          isTeamsFetched={true}
-        />
-      </ReduxIntlProviders>,
+      <MemoryRouter>
+        <ReduxIntlProviders>
+          <TeamsManagement
+            query={{ searchQuery: undefined }}
+            teams={dummyTeams}
+            userDetails={{ role: 'ADMIN' }}
+            managementView={true}
+            isTeamsFetched={true}
+          />
+        </ReduxIntlProviders>
+      </MemoryRouter>,
     );
     expect(container.querySelectorAll('h3')[0].textContent).toBe('Manage Teams');
     expect(container.querySelectorAll('article').length).toBe(1);
@@ -221,14 +245,17 @@ describe('TeamsManagement component', () => {
 
   it('renders relevant text if user is not a member of any team', async () => {
     render(
-      <ReduxIntlProviders>
-        <TeamsManagement
-          teams={[]}
-          userDetails={{ role: 'ADMIN' }}
-          managementView={false}
-          isTeamsFetched={true}
-        />
-      </ReduxIntlProviders>,
+      <MemoryRouter>
+        <ReduxIntlProviders>
+          <TeamsManagement
+            query={{ searchQuery: undefined }}
+            teams={[]}
+            userDetails={{ role: 'ADMIN' }}
+            managementView={false}
+            isTeamsFetched={true}
+          />
+        </ReduxIntlProviders>
+      </MemoryRouter>,
     );
     expect(screen.getByText(/No team found\./i)).toBeInTheDocument();
     expect(
@@ -237,71 +264,27 @@ describe('TeamsManagement component', () => {
       }),
     ).toBeInTheDocument();
   });
-
-  it('filters teams list by the search query', async () => {
-    render(
-      <ReduxIntlProviders>
-        <TeamsManagement
-          teams={dummyTeams}
-          userDetails={{ role: 'ADMIN' }}
-          managementView={true}
-          isTeamsFetched={true}
-        />
-      </ReduxIntlProviders>,
-    );
-    const textField = screen.getByRole('textbox');
-    fireEvent.change(textField, {
-      target: {
-        value: 'my best',
-      },
-    });
-    expect(screen.getByRole('heading', { name: 'My Best Team' })).toHaveTextContent('My Best Team');
-    fireEvent.change(textField, {
-      target: {
-        value: 'not my best',
-      },
-    });
-    expect(screen.queryByRole('heading', { name: 'My Best Team' })).not.toBeInTheDocument();
-    expect(screen.queryByText('No team found.')).toBeInTheDocument();
-  });
-
-  it('should filter search query when the close icon button is clicked', async () => {
-    render(
-      <ReduxIntlProviders>
-        <TeamsManagement
-          teams={teams.teams}
-          userDetails={{ role: 'ADMIN' }}
-          managementView={true}
-          isTeamsFetched={true}
-        />
-      </ReduxIntlProviders>,
-    );
-
-    const textfield = screen.getByRole('textbox');
-    await userEvent.type(textfield, 'hot');
-    expect(textfield.value).toBe('hot');
-    const clearIcon = screen.getByLabelText('clear');
-    expect(clearIcon).toBeInTheDocument();
-    await userEvent.click(clearIcon);
-    expect(textfield.value).toBe('');
-  });
 });
 
 describe('Teams component', () => {
   it('should display loading placeholder when API is being fetched', () => {
     const { container } = render(
-      <IntlProviders>
-        <Teams teams={[]} isReady={false} viewAllQuery="/view/all" />
-      </IntlProviders>,
+      <MemoryRouter>
+        <IntlProviders>
+          <Teams teams={[]} isReady={false} viewAllQuery="/view/all" />
+        </IntlProviders>
+      </MemoryRouter>,
     );
     expect(container.getElementsByClassName('show-loading-animation')).toHaveLength(36);
   });
 
   it('should display component details and teams passed', () => {
     render(
-      <IntlProviders>
-        <Teams isReady teams={dummyTeams} viewAllQuery="/view/all" showAddButton />
-      </IntlProviders>,
+      <MemoryRouter>
+        <IntlProviders>
+          <Teams isReady teams={dummyTeams} viewAllQuery="/view/all" showAddButton />
+        </IntlProviders>
+      </MemoryRouter>,
     );
     expect(screen.getByRole('heading', { name: /teams/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View all' })).toBeInTheDocument();
@@ -311,18 +294,17 @@ describe('Teams component', () => {
   });
 
   it('should navigate to project creation page on new button click', async () => {
-    const { history } = renderWithRouter(
+    const { user, router } = createComponentWithMemoryRouter(
       <IntlProviders>
         <Teams isReady teams={dummyTeams} viewAllQuery="/view/all" showAddButton />
       </IntlProviders>,
     );
-    const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /new/i }));
-    await waitFor(() => expect(history.location.pathname).toBe('/manage/teams/new/'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/manage/teams/new/'));
   });
 
   it('should display no teams found message', () => {
-    render(
+    renderWithRouter(
       <IntlProviders>
         <Teams isReady teams={[]} viewAllQuery="/view/all" />
       </IntlProviders>,
@@ -331,18 +313,17 @@ describe('Teams component', () => {
   });
 
   it('should navigate to manage projects page when view all is clicked ', async () => {
-    const { history } = renderWithRouter(
+    const { user, router } = createComponentWithMemoryRouter(
       <IntlProviders>
         <Teams isReady teams={[]} viewAllQuery="view/all" />
       </IntlProviders>,
     );
-    const user = userEvent.setup();
     await user.click(
       screen.getByRole('link', {
         name: /view all/i,
       }),
     );
-    await waitFor(() => expect(history.location.pathname).toBe('/manage/teams/view/all'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/manage/teams/view/all'));
   });
 
   it('should not display border and add button when props is false', () => {
@@ -368,7 +349,7 @@ describe('Teams component', () => {
 describe('Team Card', () => {
   test('should render component details', () => {
     const team = teams.teams[0];
-    render(
+    renderWithRouter(
       <IntlProviders>
         <TeamCard team={team} />
       </IntlProviders>,
@@ -401,7 +382,7 @@ describe('Team Card', () => {
 
 describe('TeamSideBar component', () => {
   it('should search for users by search query', async () => {
-    render(
+    const { user } = renderWithRouter(
       <ReduxIntlProviders>
         <TeamSideBar team={team} managers={[]} members={team.members} />
       </ReduxIntlProviders>,
@@ -413,7 +394,7 @@ describe('TeamSideBar component', () => {
         name: team.members[0].username,
       }),
     ).toBeInTheDocument();
-    await userEvent.type(inputField, 'not_sample_user');
+    await user.type(inputField, 'not_sample_user');
     expect(
       screen.queryByRole('link', {
         name: team.members[0].username,

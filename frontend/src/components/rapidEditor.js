@@ -18,7 +18,7 @@ export default function RapidEditor({
   const RapiDContext = useSelector((state) => state.editor.rapidContext);
   const locale = useSelector((state) => state.preferences.locale);
   const [customImageryIsSet, setCustomImageryIsSet] = useState(false);
-  const windowInit = typeof window !== undefined;
+  const windowInit = typeof window !== 'undefined';
   const customSource =
     RapiDContext && RapiDContext.background() && RapiDContext.background().findSource('custom');
 
@@ -116,5 +116,5 @@ export default function RapidEditor({
     }
   }, [session, RapiDContext, setDisable, presets, locale, gpxUrl, powerUser]);
 
-  return <div className="w-100 vh-minus-77-ns" id="rapid-container"></div>;
+  return <div className="w-100 vh-minus-69-ns" id="rapid-container"></div>;
 }
