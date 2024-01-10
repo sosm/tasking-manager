@@ -86,7 +86,7 @@ const fallbackRasterStyle = {
   sources: {
     'raster-tiles': {
       type: 'raster',
-      tiles: ['https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'],
+      tiles: ['https://tile.osm.ch/switzerland/{z}/{x}/{y}.png'],
       tileSize: 128,
       attribution:
         '© <a href="https://www.openstreetmap.org/copyright/">OpenStreetMap</a> contributors',
