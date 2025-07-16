@@ -30,7 +30,6 @@ export function Settings() {
           {userDetails.isExpert && <APIKeyCard token={token} />}
         </div>
         <div className="fl w-100 w-40-l pb3 pl3-l">
-          <PersonalInformationForm />
           {userDetails?.username && <OSMCard username={userDetails.username} />}
         </div>
       </div>

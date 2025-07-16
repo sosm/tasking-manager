@@ -1,7 +1,7 @@
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { FormattedMessage } from 'react-intl';
-
+import { Alert } from '../components/alert';
 import { Jumbotron, SecondaryJumbotron } from '../components/homepage/jumbotron';
 import homeMessages from '../components/homepage/messages';
 
@@ -17,7 +17,7 @@ export function Home() {
             </Alert>
           </div>
         }
-      >
+      />
     </div>
   );
 }

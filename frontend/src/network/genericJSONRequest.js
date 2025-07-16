@@ -15,7 +15,7 @@ export function fetchExternalJSONAPI(url, init = {}) {
 
   return fetch(url, {
     method: 'GET',
-    headers: headers,
+    headers: init.headers,
   })
     .then(handleErrors)
     .then((res) => {
